@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "module": "commonjs",
+    "jsx": "react",
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "baseUrl": "/",
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["./src/**/*", "./src/types.d.ts", "/types.d.ts", "/src/types.d.ts"],
+}
