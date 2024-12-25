@@ -1,10 +1,8 @@
-import { Body, Controller, Get, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req, Res } from '@nestjs/common';
 import { CloudService } from './cloud.service';
-import { OriginFilterGuard } from 'src/guards/origin-filter.guard';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
 @Controller("api/cloud")
-@UseGuards(OriginFilterGuard)
 export class CloudController {
   constructor(private readonly cloudService: CloudService) {}
 
