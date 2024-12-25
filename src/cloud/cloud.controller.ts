@@ -1,8 +1,7 @@
-import { Body, Controller, Get, Post, Query, Req, Res, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { CloudService } from './cloud.service';
 import { OriginFilterGuard } from 'src/guards/origin-filter.guard';
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { createReadStream } from 'fs';
 
 @Controller("api/cloud")
 @UseGuards(OriginFilterGuard)

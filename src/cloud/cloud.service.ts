@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { createReadStream, createWriteStream, existsSync } from 'fs';
-import { access, cp, lstat, mkdir, readdir, readFile, rename, rm, writeFile } from 'fs/promises';
+import { cp, lstat, mkdir, readdir, readFile, rename, rm, writeFile } from 'fs/promises';
 import { FastifyReply } from 'fastify';
 import { join } from 'path';
 import { MultipartFile } from '@fastify/multipart';
+import { getConfig } from 'src/lib/util';
 
 @Injectable()
 export class CloudService {
-  private readonly cloudDir = join(process.cwd(), 'dir/cloud');
+  private readonly cloudDir = getConfig('cloud');
 
   private resolvePath(path: string): string {
     return join(this.cloudDir, path);

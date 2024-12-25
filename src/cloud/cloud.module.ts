@@ -1,11 +1,11 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { CloudController } from './cloud.controller';
 import { CloudService } from './cloud.service';
-import { NestFastifyApplication } from '@nestjs/platform-fastify';
+import { CloudGateway } from './cloud.gateway';
 
 @Module({
   imports: [],
   controllers: [CloudController],
-  providers: [CloudService],
+  providers: [CloudService, CloudGateway],
 })
 export class CloudModule {}

@@ -61,5 +61,5 @@ client/public/index.js.map
 client/public/index.css
 client/public/index.css.map
 
-dir/*
+dir/**/*
 !dir/.config

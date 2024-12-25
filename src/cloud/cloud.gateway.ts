@@ -8,21 +8,16 @@ import { Server, Socket } from "socket.io";
 export class CloudGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer() server: Server;
 
-    handleConnection(client: Socket, ...args: any[]) {
-        console.log('Client connected:', client.id);
-    }
+    handleConnection(client: Socket, ...args: any[]) {}
 
-    handleDisconnect(client: Socket) {
-        console.log('Client disconnected:', client.id);
-    }
+    handleDisconnect(client: Socket) {}
 
     @SubscribeMessage('message')
     handleMessage(
         @ConnectedSocket() client: Socket,
-        @MessageBody() payload: string
+        @MessageBody() ...args: any[]
     ): void {
-        console.log('Client sent:', payload);
-        client.emit('message', payload);
-        client.broadcast.emit('message', payload);
+        client.emit('message', ...args);
+        client.broadcast.emit('message', ...args);
     }
 }
