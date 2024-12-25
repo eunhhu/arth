@@ -6,7 +6,7 @@ import * as os from 'os';
 import { getConfig, isAndroid } from './lib/util';
 import { existsSync, mkdirSync } from 'fs';
 import { c } from './lib/util';
-import yargs from 'yargs';
+import * as yargs from 'yargs';
 
 async function bootstrap() {
 

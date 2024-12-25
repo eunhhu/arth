@@ -4,6 +4,7 @@
   "description": "Android Rmote Termux Host",
   "author": "MswTester",
   "license": "MIT",
+  "main": "dist/main.js",
   "bin": {
     "arth": "dist/main.js"
   },
@@ -46,7 +47,8 @@
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
     "socket.io-client": "^4.8.1",
-    "styled-components": "^6.1.13"
+    "styled-components": "^6.1.13",
+    "yargs": "^17.7.2"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",
