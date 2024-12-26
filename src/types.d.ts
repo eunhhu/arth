@@ -1,4 +1,5 @@
 interface FileInfo {
+    path: string;
     name: string;
     size: number;
     isDirectory: boolean;

@@ -31,20 +31,21 @@ async function bootstrap() {
   if(!existsSync(config.root)) mkdirSync(config.root, { recursive: true });
   if(!existsSync(config.db)) mkdirSync(config.db, { recursive: true });
   if(!existsSync(config.cloud)) mkdirSync(config.cloud, { recursive: true });
+
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter(), { logger: false });
   const fastifyInstance = app.getHttpAdapter().getInstance();
 
   fastifyInstance.register(fastifyMultipart as any, { attachFieldsToBody: true });
 
-  await app.listen(argv.port || 3000);
+  await app.listen(argv.port);
 
   // Display server information
-  console.log(c('blue', `========== ARTH ${process.env.npm_package_version} ==========`));
-  console.log(c('blue', `Server running on port ${await app.getUrl()} with PIN ${argv.pin}`));
+  console.log(c('sky', `========== ARTH ${process.env.npm_package_version} ==========`));
+  console.log(c('sky', "Server running on port"), c("yellow", argv.port.toString()), c("sky", "with PIN"), c("yellow", argv.pin));
   console.log(c("lime", "[Platform]"), os.platform());
   console.log(c("lime", "[Arch]"), os.arch());
   console.log(c("lime", "[Machine]"), os.machine());
-  console.log(c("lime", "[CPU]"), os.cpus()[0].model);
+  console.log(c("lime", "[CPU]"), os.cpus()[0].model || "Unknown");
   console.log(c("lime", "[OS type]"), os.type());
   console.log(c("lime", "[Hostname]"), os.hostname());
   console.log(c("lime", "[Node version]"), process.version);

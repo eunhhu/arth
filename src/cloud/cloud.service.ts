@@ -42,6 +42,7 @@ export class CloudService {
         const filePath = join(resolvedDir, file);
         const stat = await lstat(filePath);
         return {
+          path: join(dir, file),
           name: file,
           size: stat.size,
           isDirectory: stat.isDirectory(),
@@ -52,12 +53,25 @@ export class CloudService {
     );
   }
 
+  async stat(path: string): Promise<FileInfo> {
+    const resolved = this.ensureExists(path);
+    const stat = await lstat(resolved);
+    return {
+      path,
+      name: path.split('/').pop()!,
+      size: stat.size,
+      isDirectory: stat.isDirectory(),
+      created: stat.birthtime.getTime(),
+      modified: stat.mtime.getTime(),
+    };
+  }
+
   async find(dir: string, name: string, type: 'file' | 'dir' = 'file', depths = 4): Promise<FileInfo[]> {
     if (depths < 0) return [];
     this.ensureExists(dir);
     const files = await this.list(dir);
     const matched = files.filter(
-      (f) => f.name === name && (type === 'file' ? !f.isDirectory : f.isDirectory),
+      (f) => f.name.includes(name) && (type === 'file' ? !f.isDirectory : f.isDirectory),
     );
     const subdirs = files.filter((f) => f.isDirectory);
     const results = await Promise.all(

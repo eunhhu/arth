@@ -12,12 +12,11 @@ export class DatabaseGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     handleDisconnect(client: Socket) {}
 
-    @SubscribeMessage('message')
-    handleMessage(
+    @SubscribeMessage('route')
+    route(
         @ConnectedSocket() client: Socket,
-        @MessageBody() ...args: any[]
+        @MessageBody() collection: string,
     ): void {
-        client.emit('message', ...args);
-        client.broadcast.emit('message', ...args);
+        client.join(collection);
     }
 }
