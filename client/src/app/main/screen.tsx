@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Column, Container, Float, Input, Row, Text } from '../../components/ui/primitives';
 import useSocket from '../../hooks/useSocket';
 import useMobile from '../../hooks/useMobile';
@@ -8,6 +8,7 @@ import ServiceItem from './serviceItem';
 import Alert from './alert';
 import SystemScreen from './system/screen';
 import Navigator from './navigator';
+import CloudScreen from './cloud/screen';
 
 const edgeEventSize = 40;
 const maxEventSize = 200;
@@ -37,6 +38,12 @@ const MainScreen = () => {
     const [startY, setStartY] = useState<number | null>(null);
     const [page, setPage] = useState('');
     const [search, setSearch] = useState('');
+    const realHeightRef = useRef<HTMLDivElement|null>(null);
+    const [realHeight, setRealHeight] = useState(realHeightRef.current?.getBoundingClientRect().height);
+
+    useEffect(() => {
+        setRealHeight(realHeightRef.current?.getBoundingClientRect().height);
+    }, [realHeightRef.current?.getBoundingClientRect().height, page]);
 
     const socket = useSocket('/app');
 
@@ -109,8 +116,9 @@ const MainScreen = () => {
             onTouchEnd={handleTouchEnd}
         >
         {page && <Navigator label={page} title={serviceMap[page][0]} onBack={() => setPage("")} />}
-        <Container><AnimatePresence>{
-            page === 'system' ? <SystemScreen key="system" /> :
+        <Container ref={realHeightRef}><AnimatePresence>{
+            page === 'cloud' ? <CloudScreen h={`${realHeight}px`} key="cloud" /> :
+            page === 'system' ? <SystemScreen h={`${realHeight}px`} key="system" /> :
             <Container $absolute key="main" initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} transition={{ duration: .1 }}>
                 <Column $padding='2md' $gap='md'>
                     <Input
@@ -119,7 +127,7 @@ const MainScreen = () => {
                     />
                 </Column>
                 <Container $scroll $center>
-                    <Row $wrap='wrap' $padding='0 2md' $gap='md'>
+                    <Row $wrap='wrap' $padding='0 2md' $gap='md' style={{ maxHeight: "100%" }}>
                     <AnimatePresence>
                         {Object.keys(serviceMap).map((key) => (
                         serviceMap[key][0].toLowerCase().includes(search.toLowerCase()) &&

@@ -5,8 +5,9 @@ import useSocket from "../../../hooks/useSocket";
 import Progresser from "./progresser";
 import { BatteryChargingIcon } from "lucide-react";
 import { cvt } from "../../../util/styler";
+import { parseTimestampToDate } from "../../../util/parser";
 
-const SystemScreen = () => {
+const SystemScreen = ({h}) => {
     const socket = useSocket('/sys');
     const [os, setOS] = useState<Record<string, any>>({});
     const [cpu, setCPU] = useState<Record<string, any>>({});
@@ -40,8 +41,8 @@ const SystemScreen = () => {
     const storageUsing = useMemo(() => storage["storage"] ? (storage["storage"]["used"] / 1024 / 1024).toFixed(2) : 0, [storage]);
     const storageCapacity = useMemo(() => storage["storage"] ? storage["storage"]["capacity"] : 0, [storage]);
 
-    return <Page>
-        <Column $padding="lg" $gap="lg">
+    return <Page h={h}>
+        <Column $padding="lg" $gap="lg" $justify="start" $height="full">
             <Row $width="full" $justify="between">
                 <Text>Hostname</Text>
                 <Text $color="content-muted">{os["hostname"]}</Text>
@@ -64,7 +65,7 @@ const SystemScreen = () => {
             </Row>
             <Row $width="full" $justify="between">
                 <Text>Uptime</Text>
-                <Text $color="content-muted">{os["uptime"]}s</Text>
+                <Text $color="content-muted">{os["uptime"] && parseTimestampToDate(os["uptime"])}s</Text>
             </Row>
             <Progresser value={cpuUsage}>CPU ( {cpuUsage.toFixed(2)}% )</Progresser>
             <Progresser value={memoryUsage}>Memory ( {memUsing}GB / {memTotal}GB )</Progresser>

@@ -114,6 +114,16 @@ const Input = styled(motion.input)<{
     text-align: ${p => (p.$center ? 'center' : 'left')};
 `;
 
+const Select = styled(motion.select)<{
+    $center?: boolean;
+} & IPaddingMarginMixin & ISizeMixin & ICommonStyleMixin>`
+    ${paddingMarginMixin}
+    ${sizeMixin}
+    ${commonStyleMixin}
+    outline: none;
+    text-align: ${p => (p.$center ? 'center' : 'left')};
+`;
+
 const Box = styled(Div)<ISizeMixin & ICommonStyleMixin>`
     ${sizeMixin}
     ${commonStyleMixin}
@@ -175,6 +185,9 @@ const Container = styled(Div)<{
     border-radius: ${p => cvt(p.$rounded || '')};
     width: 100%;
     height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    flex: 1;
 `;
 
 const Overlay = styled(Container)<{
@@ -237,6 +250,7 @@ export {
     Link,
     Button,
     Input,
+    Select,
     Box,
     Image,
     Video,
