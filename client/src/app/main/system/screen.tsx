@@ -22,11 +22,11 @@ const SystemScreen = () => {
         });
     }, [socket])
 
-    const cpuUsage = useMemo(() => cpu["usage"] ? +cpu["usage"] : 0, [cpu]);
+    const cpuUsage = useMemo(() => cpu["usage"] ? (+cpu["usage"]) : 0, [cpu]);
 
     const memoryUsage = useMemo(() => memory["usage"] ? +memory["usage"] : 0, [memory]);
     const memTotal = useMemo(() => memory.MemTotal ? (memory.MemTotal / 1024 / 1024).toFixed(2) : 0, [memory]);
-    const memUsing = useMemo(() => memory.MemFree ? ((memory.MemFree - memory.Buffers - memory.Cached) / 1024 / 1024).toFixed(2) : 0, [memory]);
+    const memUsing = useMemo(() => memory.MemFree ? ((memory.MemFree + memory.Buffers + memory.Cached) / 1024 / 1024).toFixed(2) : 0, [memory]);
 
     const batteryLevel = useMemo(() => battery["level"] ? +battery["level"] : 0, [battery]);
 
@@ -56,10 +56,14 @@ const SystemScreen = () => {
                 <Text $color="content-muted">{os["arch"]}</Text>
             </Row>
             <Row $width="full" $justify="between">
+                <Text>Machine</Text>
+                <Text $color="content-muted">{os["machine"]}</Text>
+            </Row>
+            <Row $width="full" $justify="between">
                 <Text>Uptime</Text>
                 <Text $color="content-muted">{os["uptime"]}s</Text>
             </Row>
-            <Progresser value={cpuUsage}>CPU ( {cpuUsage}% )</Progresser>
+            <Progresser value={cpuUsage}>CPU ( {cpuUsage.toFixed(2)}% )</Progresser>
             <Progresser value={memoryUsage}>Memory ( {memUsing}GB / {memTotal}GB )</Progresser>
             <Progresser value={batteryLevel}>Battery ( {batteryLevel}% )</Progresser>
             <Progresser value={rootCapacity}>Storage Root ( {rootUsing}GB / {rootTotal}GB )</Progresser>

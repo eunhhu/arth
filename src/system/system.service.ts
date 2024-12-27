@@ -19,6 +19,8 @@ export class SystemService {
       type: os.type(),
       platform: os.platform(),
       arch: os.arch(),
+      machine: os.machine(),
+      version: os.version(),
       release: os.release(),
       uptime: os.uptime(),
       loadavg: os.loadavg(),
