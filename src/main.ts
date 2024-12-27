@@ -31,6 +31,7 @@ async function bootstrap() {
   if(!existsSync(config.root)) mkdirSync(config.root, { recursive: true });
   if(!existsSync(config.db)) mkdirSync(config.db, { recursive: true });
   if(!existsSync(config.cloud)) mkdirSync(config.cloud, { recursive: true });
+  if(!existsSync(config.home)) mkdirSync(config.home, { recursive: true });
 
   const app = await NestFactory.create<NestFastifyApplication>(AppModule.forRoot(argv.pin), new FastifyAdapter(), { logger: false });
 

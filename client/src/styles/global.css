@@ -22,6 +22,11 @@ html, body{
 :root{
     --full: 100%;
     --half: 50%;
+    --between: space-between;
+    --around: space-around;
+    --evenly: space-evenly;
+    --start: flex-start;
+    --end: flex-end;
     /* gap size vars */
     --xl: 40px;
     --lg: 28px;
@@ -102,6 +107,6 @@ html, body{
         --headline: 1.75rem;
         --title: 1.5rem;
         --body: 1rem;
-        --caption: 0.875rem;
+        --caption: .875rem;
     }
 }

@@ -44,6 +44,10 @@ interface ICommonStyleMixin {
     $weight?: string;
     $background?: string;
     $border?: string;
+    $bt?: string;
+    $br?: string;
+    $bb?: string;
+    $bl?: string;
     $rounded?: string;
 }
 
@@ -53,13 +57,17 @@ const commonStyleMixin = css<ICommonStyleMixin>`
     font-weight: ${p => cvt(p.$weight || '400')};
     background-color: ${p => cvt(p.$background || 'transparent')};
     border: ${p => cvt(p.$border || 'none')};
+    border-top: ${p => cvt(p.$bt || '')};
+    border-right: ${p => cvt(p.$br || '')};
+    border-bottom: ${p => cvt(p.$bb || '')};
+    border-left: ${p => cvt(p.$bl || '')};
     border-radius: ${p => cvt(p.$rounded || '')};
 `;
 
 interface IFlexMixin {
-    $justify?: string;
-    $items?: string;
-    $wrap?: string;
+    $justify?: "flex-start" | "flex-end" | "center" | "space-between" | "space-around" | "space-evenly" | string;
+    $items?: "flex-start" | "flex-end" | "center" | "baseline" | "stretch" | string;
+    $wrap?: "nowrap" | "wrap" | "wrap-reverse" | string;
     $gap?: string;
 }
 
@@ -67,15 +75,17 @@ const flexMixin = css<IFlexMixin>`
     display: flex;
     justify-content: ${p => cvt(p.$justify || 'center')};
     align-items: ${p => cvt(p.$items || 'center')};
-    flex-wrap: ${p => p.$wrap || 'nowrap'};
+    flex-wrap: ${p => p.$wrap || ''};
     gap: ${p => cvt(p.$gap || '')};
 `;
 
 const Div = styled(motion.div)<{
     $absolute?: boolean;
+    $color?: string;
 } & IPaddingMarginMixin>`
     ${paddingMarginMixin}
     position: ${p => (p.$absolute ? 'absolute' : '')};
+    color: ${p => cvt(p.$color || 'content')};
 `;
 
 const Link = styled(motion.a)<IPaddingMarginMixin & ISizeMixin>`
@@ -124,10 +134,13 @@ const Video = styled(motion.video)<{
 
 const Flex = styled(Div)<{
     $background?: string;
-} & IFlexMixin>`
+    $direction?: 'row' | 'column';
+} & IFlexMixin & ISizeMixin>`
     ${flexMixin}
-    width: 100%;
+    width: ${p => cvt(p.$width || '100%')};
+    height: ${p => cvt(p.$height || 'auto')};
     background-color: ${p => cvt(p.$background || 'transparent')};
+    flex-direction: ${p => p.$direction || 'row'};
 `;
 
 const Row = styled(Flex)<{
@@ -146,13 +159,19 @@ const Container = styled(Div)<{
     $center?: boolean;
     $background?: string;
     $scroll?: boolean;
+    $scrollX?: boolean;
+    $gap?: string;
+    $rounded?: string;
 }>`
     display: flex;
     flex-direction: column;
+    gap: ${p => cvt(p.$gap || '')};
     justify-content: ${p => (!p.$scroll && p.$center ? 'center' : 'flex-start')};
     align-items: ${p => (p.$center ? 'center' : 'flex-start')};
     background-color: ${p => cvt(p.$background || 'transparent')};
-    overflow: ${p => (p.$scroll ? 'auto' : 'hidden')};
+    overflow-y: ${p => (p.$scroll ? 'auto' : 'hidden')};
+    overflow-x: ${p => (p.$scrollX ? 'auto' : 'hidden')};
+    border-radius: ${p => cvt(p.$rounded || '')};
     width: 100%;
     height: 100%;
 `;
@@ -178,21 +197,21 @@ const Float = styled(Div)<{
     position: fixed;
     top: ${p =>
         ['top', 'top-right', 'top-left'].includes(p.$position || '')
-            ? cvt(p.$distance || '')
+            ? cvt(p.$distance || '0')
             : p.$position === 'center'
             ? '50%'
             : 'auto'};
     right: ${p =>
         ['right', 'top-right', 'bottom-right'].includes(p.$position || '')
-            ? cvt(p.$distance || '')
+            ? cvt(p.$distance || '0')
             : 'auto'};
     bottom: ${p =>
         ['bottom', 'bottom-right', 'bottom-left'].includes(p.$position || '')
-            ? cvt(p.$distance || '')
+            ? cvt(p.$distance || '0')
             : 'auto'};
     left: ${p =>
         ['left', 'top-left', 'bottom-left'].includes(p.$position || '')
-            ? cvt(p.$distance || '')
+            ? cvt(p.$distance || '0')
             : p.$position === 'center'
             ? '50%'
             : 'auto'};
@@ -202,14 +221,12 @@ const Float = styled(Div)<{
 const Text = styled(Div)<{
     $size?: string;
     $weight?: string;
-    $color?: string;
     $align?: 'left' | 'right' | 'center';
     $transform?: 'uppercase' | 'lowercase' | 'capitalize';
 } & ISizeMixin>`
     ${sizeMixin}
     font-size: ${p => cvt(p.$size || 'body')};
     font-weight: ${p => cvt(p.$weight || '400')};
-    color: ${p => cvt(p.$color || 'content')};
     text-align: ${p => p.$align || ""};
     text-transform: ${p => p.$transform || 'none'};
 `;

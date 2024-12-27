@@ -9,12 +9,10 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer() server: Server;
 
     handleConnection(client: Socket, ...args: any[]) {
-        console.log('Client connected:', client.id);
+        client.emit("alert", { id:Math.random().toString(), from: "system", message: "Connected to server"});
     }
 
-    handleDisconnect(client: Socket) {
-        console.log('Client disconnected:', client.id);
-    }
+    handleDisconnect(client: Socket) {}
 
     @SubscribeMessage('route')
     route(
