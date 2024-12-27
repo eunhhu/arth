@@ -6,3 +6,9 @@ interface FileInfo {
     created: number;
     modified: number;
 }
+
+interface IAuth {
+    label: string;
+    pw: string;
+    perms: string[];
+}

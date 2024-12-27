@@ -4,7 +4,7 @@ import { AppModule } from './app.module';
 import fastifyMultipart from '@fastify/multipart';
 import * as os from 'os';
 import { getConfig, isAndroid } from './lib/util';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { c } from './lib/util';
 import * as yargs from 'yargs';
 
@@ -32,12 +32,20 @@ async function bootstrap() {
   if(!existsSync(config.db)) mkdirSync(config.db, { recursive: true });
   if(!existsSync(config.cloud)) mkdirSync(config.cloud, { recursive: true });
 
-  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter(), { logger: false });
+  const app = await NestFactory.create<NestFastifyApplication>(AppModule.forRoot(argv.pin), new FastifyAdapter(), { logger: false });
+
+  app.enableCors({
+    origin: '*',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  })
+
   const fastifyInstance = app.getHttpAdapter().getInstance();
 
   fastifyInstance.register(fastifyMultipart as any, { attachFieldsToBody: true });
 
-  await app.listen(argv.port);
+  await app.listen(argv.port, "0.0.0.0");
 
   // Display server information
   console.log(c('sky', `========== ARTH ${process.env.npm_package_version} ==========`));

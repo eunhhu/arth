@@ -1,4 +1,4 @@
-import { Controller, Get, Res } from '@nestjs/common';
+import { Controller, Get, Param, Query, Res } from '@nestjs/common';
 import { AppService } from './app.service';
 import { join } from 'path';
 import { FastifyReply } from 'fastify';
@@ -7,6 +7,11 @@ import { readFileSync } from 'fs';
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
+
+  @Get('/pin')
+  pin(@Query('q') pin: string) {
+    return this.appService.checkPin(pin);
+  }
 
   @Get('*')
   handleDom(@Res() res: FastifyReply) {

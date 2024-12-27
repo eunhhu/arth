@@ -5,11 +5,27 @@ import { cvt } from '../../util/styler';
 interface IPaddingMarginMixin {
     $padding?: string;
     $margin?: string;
+    $pt?: string;
+    $pr?: string;
+    $pb?: string;
+    $pl?: string;
+    $mt?: string;
+    $mr?: string;
+    $mb?: string;
+    $ml?: string;
 }
 
 const paddingMarginMixin = css<IPaddingMarginMixin>`
-    padding: ${p => cvt(p.$padding || '0')};
-    margin: ${p => cvt(p.$margin || '0')};
+    padding: ${p => cvt(p.$padding || '')};
+    margin: ${p => cvt(p.$margin || '')};
+    padding-top: ${p => cvt(p.$pt || '')};
+    padding-right: ${p => cvt(p.$pr || '')};
+    padding-bottom: ${p => cvt(p.$pb || '')};
+    padding-left: ${p => cvt(p.$pl || '')};
+    margin-top: ${p => cvt(p.$mt || '')};
+    margin-right: ${p => cvt(p.$mr || '')};
+    margin-bottom: ${p => cvt(p.$mb || '')};
+    margin-left: ${p => cvt(p.$ml || '')};
 `;
 
 interface ISizeMixin {
@@ -32,12 +48,12 @@ interface ICommonStyleMixin {
 }
 
 const commonStyleMixin = css<ICommonStyleMixin>`
-    color: ${p => cvt(p.$color || 'inherit')};
-    font-size: ${p => cvt(p.$size || 'var(--body)')};
+    color: ${p => cvt(p.$color || 'content')};
+    font-size: ${p => cvt(p.$size || 'body')};
     font-weight: ${p => cvt(p.$weight || '400')};
     background-color: ${p => cvt(p.$background || 'transparent')};
     border: ${p => cvt(p.$border || 'none')};
-    border-radius: ${p => cvt(p.$rounded || '0')};
+    border-radius: ${p => cvt(p.$rounded || '')};
 `;
 
 interface IFlexMixin {
@@ -52,11 +68,14 @@ const flexMixin = css<IFlexMixin>`
     justify-content: ${p => cvt(p.$justify || 'center')};
     align-items: ${p => cvt(p.$items || 'center')};
     flex-wrap: ${p => p.$wrap || 'nowrap'};
-    gap: ${p => cvt(p.$gap || '0')};
+    gap: ${p => cvt(p.$gap || '')};
 `;
 
-const Div = styled(motion.div)<IPaddingMarginMixin>`
+const Div = styled(motion.div)<{
+    $absolute?: boolean;
+} & IPaddingMarginMixin>`
     ${paddingMarginMixin}
+    position: ${p => (p.$absolute ? 'absolute' : '')};
 `;
 
 const Link = styled(motion.a)<IPaddingMarginMixin & ISizeMixin>`
@@ -93,14 +112,14 @@ const Image = styled(motion.img)<{
     $rounded?: string;
 } & ISizeMixin>`
     ${sizeMixin}
-    border-radius: ${p => cvt(p.$rounded || '0')};
+    border-radius: ${p => cvt(p.$rounded || '')};
 `;
 
 const Video = styled(motion.video)<{
     $rounded?: string;
 } & ISizeMixin>`
     ${sizeMixin}
-    border-radius: ${p => cvt(p.$rounded || '0')};
+    border-radius: ${p => cvt(p.$rounded || '')};
 `;
 
 const Flex = styled(Div)<{
@@ -130,7 +149,7 @@ const Container = styled(Div)<{
 }>`
     display: flex;
     flex-direction: column;
-    justify-content: ${p => (p.$center ? 'center' : 'flex-start')};
+    justify-content: ${p => (!p.$scroll && p.$center ? 'center' : 'flex-start')};
     align-items: ${p => (p.$center ? 'center' : 'flex-start')};
     background-color: ${p => cvt(p.$background || 'transparent')};
     overflow: ${p => (p.$scroll ? 'auto' : 'hidden')};
@@ -145,32 +164,35 @@ const Overlay = styled(Container)<{
     position: absolute;
     top: 0;
     left: 0;
-    background-color: ${p => cvt(p.$color || 'rgba(0, 0, 0, 0.5)')};
+    background-color: ${p => cvt(p.$color || 'transparent')};
     opacity: ${p => cvt(p.$opacity || 1)};
 `;
 
+type FloatPosition = 'top' | 'right' | 'bottom' | 'left' | 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'center';
+
 const Float = styled(Div)<{
-    $position?: string;
+    $position?: FloatPosition;
     $distance?: string;
-}>`
+} & ISizeMixin>`
+    ${sizeMixin}
     position: fixed;
     top: ${p =>
         ['top', 'top-right', 'top-left'].includes(p.$position || '')
-            ? cvt(p.$distance || '0')
+            ? cvt(p.$distance || '')
             : p.$position === 'center'
             ? '50%'
             : 'auto'};
     right: ${p =>
         ['right', 'top-right', 'bottom-right'].includes(p.$position || '')
-            ? cvt(p.$distance || '0')
+            ? cvt(p.$distance || '')
             : 'auto'};
     bottom: ${p =>
         ['bottom', 'bottom-right', 'bottom-left'].includes(p.$position || '')
-            ? cvt(p.$distance || '0')
+            ? cvt(p.$distance || '')
             : 'auto'};
     left: ${p =>
         ['left', 'top-left', 'bottom-left'].includes(p.$position || '')
-            ? cvt(p.$distance || '0')
+            ? cvt(p.$distance || '')
             : p.$position === 'center'
             ? '50%'
             : 'auto'};
@@ -183,11 +205,12 @@ const Text = styled(Div)<{
     $color?: string;
     $align?: 'left' | 'right' | 'center';
     $transform?: 'uppercase' | 'lowercase' | 'capitalize';
-}>`
-    font-size: ${p => cvt(p.$size || 'var(--body)')};
+} & ISizeMixin>`
+    ${sizeMixin}
+    font-size: ${p => cvt(p.$size || 'body')};
     font-weight: ${p => cvt(p.$weight || '400')};
-    color: ${p => cvt(p.$color || 'var(--content)')};
-    text-align: ${p => p.$align || 'left'};
+    color: ${p => cvt(p.$color || 'content')};
+    text-align: ${p => p.$align || ""};
     text-transform: ${p => p.$transform || 'none'};
 `;
 

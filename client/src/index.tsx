@@ -1,16 +1,16 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { GlobalProvider } from './contexts/GlobalContext';
+import { PageProvider } from './contexts/PageContext';
 import { LocalProvider } from './contexts/LocalContext';
 import App from './app/app';
 import "./styles/global.css";
 
 const Index = () => {
-    return <GlobalProvider>
+    return <PageProvider>
         <LocalProvider>
             <App />
         </LocalProvider>
-    </GlobalProvider>
+    </PageProvider>
 };
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);

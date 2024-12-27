@@ -20,6 +20,8 @@ html, body{
 }
 
 :root{
+    --full: 100%;
+    --half: 50%;
     /* gap size vars */
     --xl: 40px;
     --lg: 28px;
@@ -45,6 +47,9 @@ html, body{
     --content: #1C1C1C;
     --content-muted: #606976;
     --primary: #705CD6;
+    --error: #FF4D4F;
+
+    --var: #abcdef;
 }
 
 @media (prefers-color-scheme: dark){

@@ -2,21 +2,17 @@ import { useState, useEffect, useRef } from 'react';
 import io, { Socket } from 'socket.io-client';
 
 const useSocket = (uri?: string) => {
-    const [socket, setSocket] = useState<Socket>(io(uri));
-    const uriRef = useRef(uri);
-    
+    const [socket] = useState<Socket>(() => io(uri || '/'));
+
     useEffect(() => {
-        const newSocket = io(uriRef.current);
-    
-        setSocket(newSocket);
-    
         return () => {
-            newSocket.removeAllListeners();
-            newSocket.disconnect();
-            newSocket.close();
+            socket.offAny();
+            socket.removeAllListeners();
+            socket.disconnect();
+            socket.close();
         };
-    }, [uri]);
-    
+    }, [socket]);
+
     return socket;
 };
 

@@ -6,6 +6,8 @@ import { join } from 'path';
 import { CloudModule } from './cloud/cloud.module';
 import { SystemModule } from './system/system.module';
 import { DatabaseModule } from './database/database.module';
+import { ConfigModule } from '@nestjs/config';
+import { AppGateway } from './app.gateway';
 
 @Module({
   imports: [
@@ -16,8 +18,23 @@ import { DatabaseModule } from './database/database.module';
       rootPath: join(process.cwd(), 'client/public'),
       serveRoot: '/',
     }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+    })
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, AppGateway],
 })
-export class AppModule {}
+export class AppModule {
+  static forRoot(pin: string) {
+    return {
+      module: AppModule,
+      providers: [
+        {
+          provide: 'PIN',
+          useValue: pin,
+        },
+      ],
+    };
+  }
+}
