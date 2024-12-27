@@ -3,6 +3,7 @@ import Page from "../../../components/ui/page";
 import { Column, Row, Text } from "../../../components/ui/primitives";
 import useSocket from "../../../hooks/useSocket";
 import Progresser from "./progresser";
+import { BatteryChargingIcon } from "lucide-react";
 
 const SystemScreen = () => {
     const socket = useSocket('/sys');
@@ -26,9 +27,10 @@ const SystemScreen = () => {
 
     const memoryUsage = useMemo(() => memory["usage"] ? +memory["usage"] : 0, [memory]);
     const memTotal = useMemo(() => memory.MemTotal ? (memory.MemTotal / 1024 / 1024).toFixed(2) : 0, [memory]);
-    const memUsing = useMemo(() => memory.MemFree ? ((memory.MemFree + memory.Buffers + memory.Cached) / 1024 / 1024).toFixed(2) : 0, [memory]);
+    const memUsing = useMemo(() => memory.MemFree ? ((memory.MemTotal - memory.MemFree - memory.Buffers - memory.Cached) / 1024 / 1024).toFixed(2) : 0, [memory]);
 
     const batteryLevel = useMemo(() => battery["level"] ? +battery["level"] : 0, [battery]);
+    const batteryCharging = useMemo(() => battery["AC powered"] === "true" ? true : false, [battery]);
 
     const rootTotal = useMemo(() => storage["root"] ? (storage["root"]["size"] / 1024 / 1024).toFixed(2) : 0, [storage]);
     const rootUsing = useMemo(() => storage["root"] ? (storage["root"]["used"] / 1024 / 1024).toFixed(2) : 0, [storage]);
@@ -65,7 +67,7 @@ const SystemScreen = () => {
             </Row>
             <Progresser value={cpuUsage}>CPU ( {cpuUsage.toFixed(2)}% )</Progresser>
             <Progresser value={memoryUsage}>Memory ( {memUsing}GB / {memTotal}GB )</Progresser>
-            <Progresser value={batteryLevel}>Battery ( {batteryLevel}% )</Progresser>
+            <Progresser value={batteryLevel}>Battery ( {batteryLevel}% ){batteryCharging && <BatteryChargingIcon size={24} />}</Progresser>
             <Progresser value={rootCapacity}>Storage Root ( {rootUsing}GB / {rootTotal}GB )</Progresser>
             <Progresser value={storageCapacity}>Storage SD card ( {storageUsing}GB / {storageTotal}GB )</Progresser>
         </Column>
