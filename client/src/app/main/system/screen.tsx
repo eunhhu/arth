@@ -70,7 +70,7 @@ const SystemScreen = () => {
             <Progresser value={batteryLevel}>
                 <Row $width="full" $justify="start" $gap="sm">
                     <Text>Battery ( {batteryLevel}% )</Text>
-                    {!batteryCharging && <BatteryChargingIcon size={32} />}
+                    {batteryCharging && <BatteryChargingIcon size={28} />}
                 </Row>
             </Progresser>
             <Progresser value={rootCapacity}>Storage Root ( {rootUsing}GB / {rootTotal}GB )</Progresser>
