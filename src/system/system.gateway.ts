@@ -14,13 +14,14 @@ export class SystemGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     constructor(private readonly systemService: SystemService) {
         this.logger.log('SystemGateway initialized');
-        if(this.systemService.isValid()) this.interval = setInterval(() => {
+        if(this.systemService.isValid()) this.interval = setInterval(async () => {
+            const cpu = await this.systemService.getCPU();
+            const memory = await this.systemService.getMemory();
+            const battery = await this.systemService.getBattery();
+            const storage = await this.systemService.getStorage();
             this.server.emit("update-info", {
                 os: this.systemService.getOSInfo(),
-                cpu: this.systemService.getCPU(),
-                memory: this.systemService.getMemory(),
-                battery: this.systemService.getBattery(),
-                storage: this.systemService.getStorage()
+                cpu, memory, battery, storage
             });
         }, 500);
     }

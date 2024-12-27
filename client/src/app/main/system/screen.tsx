@@ -1,4 +1,4 @@
-import React, { use, useEffect, useMemo, useState } from "react"
+import React, { memo, use, useEffect, useMemo, useState } from "react"
 import Page from "../../../components/ui/page";
 import { Column, Row, Text } from "../../../components/ui/primitives";
 import useSocket from "../../../hooks/useSocket";
