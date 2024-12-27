@@ -11,6 +11,8 @@ export const cvt = (value: string | number): string => {
 
     const toVar = (v: string) => getGlobalVar(v) ? `var(--${v})` : v;
 
+    if (getGlobalVar(value)) return toVar(value);
+
     if (unitRegex.test(value)) {
         return value.replace(unitRegex, (_, num, unit) =>
             getGlobalVar(unit) ? `calc(${num} * var(--${unit}))` : `${num}${unit}`
