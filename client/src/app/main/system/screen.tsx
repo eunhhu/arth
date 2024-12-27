@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import React, { use, useEffect, useMemo, useState } from "react"
 import Page from "../../../components/ui/page";
 import { Column, Row, Text } from "../../../components/ui/primitives";
 import useSocket from "../../../hooks/useSocket";
@@ -22,20 +22,20 @@ const SystemScreen = () => {
         });
     }, [socket])
 
-    const cpuUsage = cpu["usage"] ? +cpu["usage"] : 0;
+    const cpuUsage = useMemo(() => cpu["usage"] ? +cpu["usage"] : 0, [cpu]);
 
-    const memoryUsage = memory["usage"] ? +memory["usage"] : 0;
-    const memTotal = memory.MemTotal ? (memory.MemTotal / 1024 / 1024).toFixed(2) : 0;
-    const memUsing = memory.MemFree ? ((memory.MemFree - memory.Buffers - memory.Cached) / 1024 / 1024).toFixed(2) : 0;
+    const memoryUsage = useMemo(() => memory["usage"] ? +memory["usage"] : 0, [memory]);
+    const memTotal = useMemo(() => memory.MemTotal ? (memory.MemTotal / 1024 / 1024).toFixed(2) : 0, [memory]);
+    const memUsing = useMemo(() => memory.MemFree ? ((memory.MemFree - memory.Buffers - memory.Cached) / 1024 / 1024).toFixed(2) : 0, [memory]);
 
-    const batteryLevel = battery["level"] ? +battery["level"] : 0;
+    const batteryLevel = useMemo(() => battery["level"] ? +battery["level"] : 0, [battery]);
 
-    const rootTotal = storage["root"] ? (storage["root"]["size"] / 1024 / 1024).toFixed(2) : 0;
-    const rootUsing = storage["root"] ? (storage["root"]["used"] / 1024 / 1024).toFixed(2) : 0;
-    const rootCapacity = storage["root"] ? storage["root"]["capacity"] : 0;
-    const storageTotal = storage["storage"] ? (storage["storage"]["size"] / 1024 / 1024).toFixed(2) : 0;
-    const storageUsing = storage["storage"] ? (storage["storage"]["used"] / 1024 / 1024).toFixed(2) : 0;
-    const storageCapacity = storage["storage"] ? storage["storage"]["capacity"] : 0;
+    const rootTotal = useMemo(() => storage["root"] ? (storage["root"]["size"] / 1024 / 1024).toFixed(2) : 0, [storage]);
+    const rootUsing = useMemo(() => storage["root"] ? (storage["root"]["used"] / 1024 / 1024).toFixed(2) : 0, [storage]);
+    const rootCapacity = useMemo(() => storage["root"] ? storage["root"]["capacity"] : 0, [storage]);
+    const storageTotal = useMemo(() => storage["storage"] ? (storage["storage"]["size"] / 1024 / 1024).toFixed(2) : 0, [storage]);
+    const storageUsing = useMemo(() => storage["storage"] ? (storage["storage"]["used"] / 1024 / 1024).toFixed(2) : 0, [storage]);
+    const storageCapacity = useMemo(() => storage["storage"] ? storage["storage"]["capacity"] : 0, [storage]);
 
     return <Page>
         <Column $padding="lg" $gap="lg">
