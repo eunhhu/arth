@@ -1,11 +1,11 @@
-import React, { memo, use, useEffect, useMemo, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import Page from "../../../components/ui/page";
 import { Column, Row, Text } from "../../../components/ui/primitives";
 import useSocket from "../../../hooks/useSocket";
 import Progresser from "./progresser";
 import { BatteryChargingIcon } from "lucide-react";
 import { cvt } from "../../../util/styler";
-import { parseTimestampToDate } from "../../../util/parser";
+import { formatSeconds } from "../../../util/parser";
 
 const SystemScreen = ({h}) => {
     const socket = useSocket('/sys');
@@ -65,7 +65,7 @@ const SystemScreen = ({h}) => {
             </Row>
             <Row $width="full" $justify="between">
                 <Text>Uptime</Text>
-                <Text $color="content-muted">{os["uptime"] && parseTimestampToDate(os["uptime"])}s</Text>
+                <Text $color="content-muted">{os["uptime"] && formatSeconds(os["uptime"])}s</Text>
             </Row>
             <Progresser value={cpuUsage}>CPU ( {cpuUsage.toFixed(2)}% )</Progresser>
             <Progresser value={memoryUsage}>Memory ( {memUsing}GB / {memTotal}GB )</Progresser>
