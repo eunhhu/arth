@@ -67,7 +67,12 @@ const SystemScreen = () => {
             </Row>
             <Progresser value={cpuUsage}>CPU ( {cpuUsage.toFixed(2)}% )</Progresser>
             <Progresser value={memoryUsage}>Memory ( {memUsing}GB / {memTotal}GB )</Progresser>
-            <Progresser value={batteryLevel}>Battery ( {batteryLevel}% ){batteryCharging && <BatteryChargingIcon size={24} />}</Progresser>
+            <Progresser value={batteryLevel}>
+                <Row $width="full" $justify="start" $gap="sm">
+                    <Text>Battery ( {batteryLevel}% )</Text>
+                    {!batteryCharging && <BatteryChargingIcon size={32} />}
+                </Row>
+            </Progresser>
             <Progresser value={rootCapacity}>Storage Root ( {rootUsing}GB / {rootTotal}GB )</Progresser>
             <Progresser value={storageCapacity}>Storage SD card ( {storageUsing}GB / {storageTotal}GB )</Progresser>
         </Column>
