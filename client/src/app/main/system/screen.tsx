@@ -4,6 +4,7 @@ import { Column, Row, Text } from "../../../components/ui/primitives";
 import useSocket from "../../../hooks/useSocket";
 import Progresser from "./progresser";
 import { BatteryChargingIcon } from "lucide-react";
+import { cvt } from "../../../util/styler";
 
 const SystemScreen = () => {
     const socket = useSocket('/sys');
@@ -68,9 +69,9 @@ const SystemScreen = () => {
             <Progresser value={cpuUsage}>CPU ( {cpuUsage.toFixed(2)}% )</Progresser>
             <Progresser value={memoryUsage}>Memory ( {memUsing}GB / {memTotal}GB )</Progresser>
             <Progresser value={batteryLevel}>
-                <Row $width="full" $justify="start" $gap="sm">
+                <Row $width="full" $justify="between" $gap="sm" $relative>
                     <Text>Battery ( {batteryLevel}% )</Text>
-                    {batteryCharging && <BatteryChargingIcon size={26} />}
+                    {batteryCharging && <BatteryChargingIcon style={{position:"absolute", right:0, width:cvt("body * 2")}} />}
                 </Row>
             </Progresser>
             <Progresser value={rootCapacity}>Storage Root ( {rootUsing}GB / {rootTotal}GB )</Progresser>

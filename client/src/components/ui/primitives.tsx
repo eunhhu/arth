@@ -81,10 +81,11 @@ const flexMixin = css<IFlexMixin>`
 
 const Div = styled(motion.div)<{
     $absolute?: boolean;
+    $relative?: boolean;
     $color?: string;
 } & IPaddingMarginMixin>`
     ${paddingMarginMixin}
-    position: ${p => (p.$absolute ? 'absolute' : '')};
+    position: ${p => (p.$absolute ? 'absolute' : p.$relative ? 'relative' : '')};
     color: ${p => cvt(p.$color || 'content')};
 `;
 
