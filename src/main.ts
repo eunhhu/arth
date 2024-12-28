@@ -4,7 +4,7 @@ import { AppModule } from './app.module';
 import fastifyMultipart from '@fastify/multipart';
 import * as os from 'os';
 import { getConfig, isAndroid } from './lib/util';
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync } from 'fs';
 import { c } from './lib/util';
 import * as yargs from 'yargs';
 
@@ -42,9 +42,16 @@ async function bootstrap() {
     credentials: true,
   })
 
-  const fastifyInstance = app.getHttpAdapter().getInstance();
-
-  fastifyInstance.register(fastifyMultipart as any, { attachFieldsToBody: true });
+  await app.register(fastifyMultipart, {
+    limits: {
+      fieldNameSize: 100,
+      fieldSize: 1000000,
+      fields: 10,
+      fileSize: 1024 * 1024 * 1024 * 10, // 10 GB
+      files: 99,
+      headerPairs: 2000,
+    }
+  });
 
   await app.listen(argv.port, "0.0.0.0");
 

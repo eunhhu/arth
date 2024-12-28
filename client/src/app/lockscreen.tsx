@@ -52,7 +52,7 @@ const LockScreen = () => {
                         exit={{ opacity: 0, y: -100, rotateX: 90, scale: 0.5 }}
                         transition={smooth}
                     >
-                        <Image src="icon_light.svg" $width="20md" />
+                        <Image src={`icon_light.svg`} $width="20md" />
                     </Column>
                 )}
                 {onPin && (<>

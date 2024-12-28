@@ -12,3 +12,10 @@ interface IAuth {
     pw: string;
     perms: string[];
 }
+
+interface AlertMessage {
+    id: string;
+    from: string;
+    message: string;
+    progress?: number;
+}

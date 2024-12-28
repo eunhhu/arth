@@ -1,4 +1,4 @@
-import { Box, Flex, Row, Text } from "../../components/ui/primitives";
+import { Box, Column, Flex, Row, Text } from "../../components/ui/primitives";
 import React from "react";
 import { serviceMap } from "./screen";
 import useMobile from "../../hooks/useMobile";
@@ -8,10 +8,11 @@ import { X } from "lucide-react";
 interface AlertProps {
     children?: React.ReactNode;
     from: string;
+    progress?: number;
     onClick?: () => void;
     onClose?: () => void;
 }
-const Alert = ({children, from, onClick, onClose}: AlertProps) => {
+const Alert = ({children, from, onClick, onClose, progress}: AlertProps) => {
     const isMobile = useMobile();
     return <Box
         initial={{ x: "120%" }} animate={{ x: 0 }} exit={{ x: "120%" }} transition={smooth}
@@ -24,10 +25,15 @@ const Alert = ({children, from, onClick, onClose}: AlertProps) => {
             <Flex $width='24px' className="noClose">
                 {serviceMap[from] && React.createElement(serviceMap[from][1], { size: 24 })}
             </Flex>
-            <Text $width="full" $size='body' className="noClose">{children}</Text>
-            <Flex $width='24px'>
+            <Column $gap='sm' className="noClose">
+                <Text $width="full" $size='body' className="noClose">{children}</Text>
+                {progress && <Box $width="full" $height="md" $rounded="md" $background="surface">
+                    <Box $background="content" $width={progress*100 + "%"} $height="full" $rounded="md" style={{transition: "width .2s ease"}} />
+                </Box>}
+            </Column>
+            {(progress === undefined || progress === 1) && <Flex $width='24px'>
                 <X size={24} onClick={onClose} />
-            </Flex>
+            </Flex>}
         </Row>
     </Box>
 }

@@ -61,27 +61,39 @@ export class CloudGateway implements OnGatewayConnection, OnGatewayDisconnect {
             const valuePath = value.join('/');
             const removedPath = path.join('/');
             if (valuePath.startsWith(removedPath) || valuePath === path.slice(0, -1).join('/')) {
-                this.server.to(key).emit('folderRemoved', path.slice(0, -1), path[path.length - 1]);
+                this.server.to(key).emit('folderRemoved', path.slice(0, -1));
             }
         });
     }
 
-    fileRenamed(path: string[], name: string): void {
+    folderRenamed(path: string[], name: string): void {
         this.controls.forEach((value, key) => {
             const valuePath = value.join('/');
             const targetPath = path.join('/');
             if (valuePath.startsWith(targetPath) || valuePath === path.slice(0, -1).join('/')) {
-                this.server.to(key).emit('fileRenamed', path, name);
+                this.server.to(key).emit('folderRenamed', path, name);
             }
         });
     }
 
-    fileCreated(path: string[]): void {
+    async fileCreated(path: string[]): Promise<void> {
+        const file = await this.cloudService.stat(path.join('/'));
         this.controls.forEach((value, key) => {
             const valuePath = value.join('/');
             const parentPath = path.slice(0, -1).join('/');
-            if (valuePath.startsWith(parentPath)) {
-                this.server.to(key).emit('fileCreated', path);
+            if (valuePath === parentPath) {
+                this.server.to(key).emit('fileCreated', file);
+            }
+        });
+    }
+
+    async routeUpdated(path: string[]): Promise<void> {
+        const result = await this.cloudService.list('/' + path.join('/'));
+        this.controls.forEach((value, key) => {
+            const valuePath = value.join('/');
+            const targetPath = path.join('/');
+            if (valuePath === targetPath) {
+                this.server.to(key).emit('list', result);
             }
         });
     }

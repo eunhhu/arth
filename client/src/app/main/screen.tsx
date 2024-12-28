@@ -1,14 +1,16 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Column, Container, Float, Input, Row, Text } from '../../components/ui/primitives';
+import React, { useEffect, useRef, useState } from 'react';
+import { Column, Container, Input, Row, Text } from '../../components/ui/primitives';
 import useSocket from '../../hooks/useSocket';
 import useMobile from '../../hooks/useMobile';
 import { CloudIcon, DatabaseIcon, MessageCircleIcon, CpuIcon, MusicIcon, YoutubeIcon } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import ServiceItem from './serviceItem';
-import Alert from './alert';
 import SystemScreen from './system/screen';
 import Navigator from './navigator';
 import CloudScreen from './cloud/screen';
+import FloatAlerts from './floatAlerts';
+import AlertSection from './alertSection';
+import { useAlert } from '../../contexts/AlertContext';
 
 const edgeEventSize = 40;
 const maxEventSize = 200;
@@ -23,16 +25,9 @@ export const serviceMap:Record<string, [string, any]> = {
     'youtube': ['Youtube', YoutubeIcon],
 }
 
-interface AlertMessage {
-    id: string;
-    from: string;
-    message: string;
-}
-
 const MainScreen = () => {
     const isMobile = useMobile();
-    const [alerts, setAlerts] = useState<AlertMessage[]>([]);
-    const [surfaceAlerts, setSurfaceAlerts] = useState<AlertMessage[]>([]);
+    const {alerts, setAlerts, surfaceAlerts, setSurfaceAlerts} = useAlert();
     const [wAlert, setWalert] = useState(0);
     const [startX, setStartX] = useState<number | null>(null);
     const [startY, setStartY] = useState<number | null>(null);
@@ -40,6 +35,12 @@ const MainScreen = () => {
     const [search, setSearch] = useState('');
     const realHeightRef = useRef<HTMLDivElement|null>(null);
     const [realHeight, setRealHeight] = useState(realHeightRef.current?.getBoundingClientRect().height);
+
+    useEffect(() => {
+        const resize = () => setRealHeight(realHeightRef.current?.getBoundingClientRect().height);
+        window.addEventListener('resize', resize);
+        return () => window.removeEventListener('resize', resize);
+    }, []);
 
     useEffect(() => {
         setRealHeight(realHeightRef.current?.getBoundingClientRect().height);
@@ -50,9 +51,9 @@ const MainScreen = () => {
     useEffect(() => {
         socket.on("alert", (data: AlertMessage) => {
             setAlerts(prev => [...prev, data]);
-            setSurfaceAlerts(prev => [...prev, data]);
+            setSurfaceAlerts(prev => [...prev, data.id]);
         });
-    }, [socket]);
+    }, [socket, alerts]);
 
     useEffect(() => {
         if (surfaceAlerts.length > 0) {
@@ -122,8 +123,8 @@ const MainScreen = () => {
             <Container $absolute key="main" initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} transition={{ duration: .1 }}>
                 <Column $padding='2md' $gap='md'>
                     <Input
-                    placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)}
-                    $background='surface' $border='1px outline solid' $padding='md' $rounded='sm' $color='content' $width='full'
+                        placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)}
+                        $background='surface' $border='1px outline solid' $padding='md' $rounded='sm' $color='content' $width='full'
                     />
                 </Column>
                 <Container $scroll $center>
@@ -141,56 +142,8 @@ const MainScreen = () => {
                 </Container>
             </Container>
         }</AnimatePresence></Container>
-        <Float $position="right" $height='full' $width='36xs' $padding='md'
-            style={{ transform: `translateX(${100 - wAlert * 100}%)`, transition: 'transform 0.1s' }}
-            transition={{ duration: 0, ease: "easeInOut" }}
-            onTouchStart={(e) => {
-                if (!isMobile) return;
-                if (!(e.target as HTMLElement).classList.contains("draggable")) return;
-                setStartX(innerWidth);
-                setWalert(1);
-            }}
-        >
-            <Box className='draggable' $background='#fff1' $border='1px outline solid' $padding='md' $rounded='md' $height='full'
-                style={{backdropFilter: 'blur(4px)'}}
-            >
-                <Container $scroll $center $gap='md' $rounded='md' className='draggable'>
-                    <AnimatePresence>
-                        {alerts.map((alert, i) => {
-                            const revoker = (prev: AlertMessage[]) => prev.filter((_, j) => j !== i)
-                            return <Alert key={alert.id} from={alert.from}
-                            onClose={() => {
-                                setAlerts(revoker)
-                                setSurfaceAlerts(revoker)
-                            }}
-                            onClick={() => {
-                                setWalert(0)
-                                setAlerts(revoker)
-                                setSurfaceAlerts(revoker)
-                                setPage(alert.from)
-                            }}
-                            >{alert.message}</Alert>
-                        })}
-                    </AnimatePresence>
-                </Container>
-            </Box>
-        </Float>
-        <Float $position="right" $height='full' $width='36xs' $padding='md'
-            style={{ pointerEvents: 'none'}}
-        >
-            <Column $justify='flex-end' $gap='md' $height='full'>
-                <AnimatePresence>
-                    {surfaceAlerts.map((alert, i) => <Alert key={alert.id} from={alert.from}
-                        onClick={() => setWalert(1)}
-                        onClose={() => {
-                            const revoker = (prev: AlertMessage[]) => prev.filter((_, j) => j !== i)
-                            setAlerts(revoker)
-                            setSurfaceAlerts(revoker)
-                        }}
-                    >{alert.message}</Alert>)}
-                </AnimatePresence>
-            </Column>
-        </Float>
+        <AlertSection wAlert={wAlert} setWalert={setWalert} setPage={setPage} setStartX={setStartX} />
+        <FloatAlerts setWalert={setWalert} />
         </Container>
     );
 };

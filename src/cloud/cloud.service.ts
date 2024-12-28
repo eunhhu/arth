@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { createReadStream, createWriteStream, existsSync } from 'fs';
+import { createReadStream, createWriteStream, existsSync, lstatSync } from 'fs';
 import { cp, lstat, mkdir, readdir, readFile, rename, rm, writeFile } from 'fs/promises';
 import { FastifyReply } from 'fastify';
 import { join } from 'path';
 import { MultipartFile } from '@fastify/multipart';
-import { getConfig } from 'src/lib/util';
+import { getConfig, splitPath } from 'src/lib/util';
+import { MemoryStorageFile } from '@blazity/nest-file-fastify';
 
 @Injectable()
 export class CloudService {
@@ -16,7 +17,7 @@ export class CloudService {
 
   private ensureExists(path: string): string {
     const resolved = this.resolvePath(path);
-    if (!existsSync(resolved)) throw new Error(`Path not found: ${path}`);
+    if (!existsSync(resolved)) throw new Error(`Path not found: ${path} | ${resolved}`);
     return resolved;
   }
 
@@ -58,7 +59,7 @@ export class CloudService {
     const stat = await lstat(resolved);
     return {
       path,
-      name: path.split('/').pop()!,
+      name: splitPath(path).pop(),
       size: stat.size,
       isDirectory: stat.isDirectory(),
       created: stat.birthtime.getTime(),
@@ -104,6 +105,7 @@ export class CloudService {
 
   async read(filePath: string): Promise<string> {
     const resolved = this.ensureExists(filePath);
+    if (lstatSync(resolved).isDirectory()) throw new Error('Cannot read a directory');
     const content = await readFile(resolved, 'utf-8');
     try {
       return JSON.parse(content);
@@ -118,8 +120,8 @@ export class CloudService {
   }
 
   async write(filePath: string, data: string): Promise<void> {
-    this.ensureExists(filePath);
-    const resolved = this.resolvePath(filePath);
+    const resolved = this.ensureExists(filePath);
+    if (lstatSync(resolved).isDirectory()) throw new Error('Cannot write to a directory');
     await writeFile(resolved, typeof data === 'string' ? data : JSON.stringify(data), 'utf-8');
   }
 
@@ -143,19 +145,18 @@ export class CloudService {
   }
 
   async delete(path: string): Promise<void> {
-    this.ensureExists(path);
-    const resolved = this.resolvePath(path);
+    const resolved = this.ensureExists(path);
     await rm(resolved, { recursive: true, force: true });
   }
 
   async deleteMany(paths: string[]): Promise<void> {
-    const resolvedPaths = this.ensureAllExist(paths);
-    await Promise.all(resolvedPaths.map((p) => this.delete(p)));
+    this.ensureAllExist(paths);
+    await Promise.all(paths.map((p) => this.delete(p)));
   }
 
   async move(oldPath: string, newDir: string): Promise<void> {
     const resolvedOld = this.ensureExists(oldPath);
-    const target = join(newDir, oldPath.split('/').pop()!);
+    const target = join(newDir, splitPath(oldPath).pop()!);
     if (this.exists(target)) throw new Error('File already exists');
     const resolvedTarget = this.resolvePath(target);
     await rename(resolvedOld, resolvedTarget);
@@ -163,13 +164,12 @@ export class CloudService {
 
   async moveMany(paths: string[], newDir: string): Promise<void> {
     this.ensureAllExist(paths);
-    const resolvedNew = this.resolvePath(newDir);
-    await Promise.all(paths.map((p) => this.move(p, resolvedNew)));
+    await Promise.all(paths.map((p) => this.move(p, newDir)));
   }
 
   async copy(oldPath: string, newDir: string): Promise<void> {
     const resolvedOld = this.ensureExists(oldPath);
-    const target = join(newDir, oldPath.split('/').pop()!);
+    const target = join(newDir, splitPath(oldPath).pop()!);
     if (this.exists(target)) throw new Error('File already exists');
     const resolvedTarget = this.resolvePath(target);
     await cp(resolvedOld, resolvedTarget, { recursive: true });
@@ -177,8 +177,7 @@ export class CloudService {
 
   async copyMany(paths: string[], newDir: string): Promise<void> {
     this.ensureAllExist(paths);
-    const resolvedNew = this.resolvePath(newDir);
-    await Promise.all(paths.map((p) => this.copy(p, resolvedNew)));
+    await Promise.all(paths.map((p) => this.copy(p, newDir)));
   }
 
   async rename(path: string, newName: string): Promise<void> {
@@ -190,9 +189,7 @@ export class CloudService {
 
   async renameMany(paths: string[], baseName: string): Promise<void> {
     this.ensureAllExist(paths);
-    await Promise.all(
-      paths.map((p, i) => this.rename(p, `${baseName}_${i}`)),
-    );
+    await Promise.all(paths.map((p, i) => this.rename(p, `${baseName}_${i}`)));
   }
 
   async download(dir: string, res: FastifyReply): Promise<void> {
@@ -200,7 +197,7 @@ export class CloudService {
     const stat = await lstat(resolved);
     res
       .header('Content-Type', 'application/octet-stream')
-      .header('Content-Disposition', `attachment; filename="${dir.split('/').pop()}"`)
+      .header('Content-Disposition', `attachment; filename="${splitPath(dir).pop()}"`)
       .header('Content-Length', stat.size);
     if (stat.isDirectory()) throw new Error('Cannot download a directory');
     createReadStream(resolved).pipe(res.raw);
@@ -208,18 +205,29 @@ export class CloudService {
 
   async upload(
     dir: string,
-    file: MultipartFile
-  ): Promise<void> {
-    const resolvedDir = this.resolvePath(dir);
-    const targetPath = join(resolvedDir, file.filename);
+    files:  AsyncIterableIterator<MultipartFile>
+  ): Promise<() => void> {
+    const resolved = this.resolvePath(dir);
+    const uploadPromises = [];
+    for await (const file of files) {
+      const filePath = join(resolved, file.filename || `file_${Date.now()}`);
+      const saveFilePromise = new Promise((resolve, reject) => {
+        const writeStream = createWriteStream(filePath);
+        file.file.pipe(writeStream);
+        file.file.on('end', resolve);
+        file.file.on('error', reject);
+      });
+      uploadPromises.push(saveFilePromise);
+    }
+    await Promise.all(uploadPromises);
+    return () => {
+      uploadPromises.forEach(p => p.cancel());
+    };
+  }
 
-    const writeStream = createWriteStream(targetPath);
-
-    return new Promise((resolve, reject) => {
-      file.file.pipe(writeStream);
-
-      file.file.on('end', resolve);
-      file.file.on('error', reject);
-    });
+  async cleanup(dir: string): Promise<void> {
+    const resolved = this.resolvePath(dir);
+    if (!existsSync(resolved)) return;
+    await rm(resolved, { recursive: true, force: true });
   }
 }

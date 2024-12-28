@@ -4,6 +4,7 @@ import { PageProvider } from './contexts/PageContext';
 import { LocalProvider } from './contexts/LocalContext';
 import App from './app/app';
 import "./styles/global.css";
+import { AlertProvider } from './contexts/AlertContext';
 
 const Index = () => {
     useEffect(() => {
@@ -11,7 +12,9 @@ const Index = () => {
     }, [])
     return <PageProvider>
         <LocalProvider>
-            <App />
+            <AlertProvider>
+                <App />
+            </AlertProvider>
         </LocalProvider>
     </PageProvider>
 };

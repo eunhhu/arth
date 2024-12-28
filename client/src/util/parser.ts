@@ -22,3 +22,21 @@ export function formatSeconds(seconds: number): string {
 
     return parts.join(" ");
 }
+
+export function formatBytes(bytes: number): string {
+    if (bytes < 0) throw new Error("Byte value cannot be negative.");
+
+    const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB'];
+    let unitIndex = 0;
+
+    while (bytes >= 1000 && unitIndex < units.length - 1) {
+        bytes /= 1024;
+        unitIndex++;
+    }
+
+    if (unitIndex === 0) {
+        return `${bytes}${units[unitIndex]}`;
+    }
+
+    return `${bytes.toFixed(2)}${units[unitIndex]}`;
+}

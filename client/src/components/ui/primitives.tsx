@@ -86,7 +86,7 @@ const Div = styled(motion.div)<{
 } & IPaddingMarginMixin>`
     ${paddingMarginMixin}
     position: ${p => (p.$absolute ? 'absolute' : p.$relative ? 'relative' : '')};
-    color: ${p => cvt(p.$color || 'content')};
+    color: ${p => cvt(p.$color || '')};
 `;
 
 const Link = styled(motion.a)<IPaddingMarginMixin & ISizeMixin>`
@@ -173,9 +173,11 @@ const Container = styled(Div)<{
     $scrollX?: boolean;
     $gap?: string;
     $rounded?: string;
+    $wrap?: boolean;
 }>`
     display: flex;
-    flex-direction: column;
+    flex-direction: ${p => p.$wrap ? 'row' : 'column'};
+    flex-wrap: ${p => p.$wrap ? 'wrap' : ''};
     gap: ${p => cvt(p.$gap || '')};
     justify-content: ${p => (!p.$scroll && p.$center ? 'center' : 'flex-start')};
     align-items: ${p => (p.$center ? 'center' : 'flex-start')};
@@ -237,12 +239,14 @@ const Text = styled(Div)<{
     $weight?: string;
     $align?: 'left' | 'right' | 'center';
     $transform?: 'uppercase' | 'lowercase' | 'capitalize';
+    $color?: string;
 } & ISizeMixin>`
     ${sizeMixin}
     font-size: ${p => cvt(p.$size || 'body')};
     font-weight: ${p => cvt(p.$weight || '400')};
     text-align: ${p => p.$align || ""};
     text-transform: ${p => p.$transform || 'none'};
+    color: ${p => cvt(p.$color || 'content')};
 `;
 
 export {

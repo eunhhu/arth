@@ -44,3 +44,5 @@ export const c = (color: Color, text: string) => {
 export const isAndroid = () => {
     return os.platform() === "android" && (os.arch().startsWith("arm") || os.arch().startsWith("aarch64")) && os.type() === "Linux";
 }
+
+export const splitPath = (path: string): string[] => path.replaceAll("\\", "/").split('/').filter(Boolean);
