@@ -17,7 +17,7 @@ const Alert = ({children, from, onClick, onClose, progress}: AlertProps) => {
     return <Box
         initial={{ x: "120%" }} animate={{ x: 0 }} exit={{ x: "120%" }} transition={smooth}
         $background='#fff4' $rounded='md' $width='full' className="noClose"
-        style={{ cursor: isMobile ? "none" : "pointer", userSelect: "none", pointerEvents: "all" }} onClick={e => {
+        style={{ cursor: isMobile ? "default" : "pointer", userSelect: "none", pointerEvents: "all" }} onClick={e => {
             (e.target as HTMLElement).classList.contains("noClose") && onClick && onClick();
         }}
     >

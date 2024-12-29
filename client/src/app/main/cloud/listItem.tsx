@@ -16,7 +16,7 @@ interface ListItemProps {
 }
 const ListItem = ({ file, selected, selectMode, onClick, selectedOnClick, onForceSelect }: ListItemProps) => {
     const isMobile = useMobile();
-    const buttonProps:CSSProperties = { cursor: isMobile ? "none" : "pointer", userSelect: "none" }
+    const buttonProps:CSSProperties = { cursor: isMobile ? "default" : "pointer", userSelect: "none" }
     const isSelected = selected.includes(file.path);
     return <Box $width='full' $background={isSelected ? 'surface' : 'transparent'}>
         <Row $gap="md" $padding="xs md" style={buttonProps} onClick={(e) => {

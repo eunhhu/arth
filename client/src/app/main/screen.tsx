@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Column, Container, Input, Row, Text } from '../../components/ui/primitives';
 import useSocket from '../../hooks/useSocket';
 import useMobile from '../../hooks/useMobile';
-import { CloudIcon, DatabaseIcon, MessageCircleIcon, CpuIcon, MusicIcon, YoutubeIcon } from 'lucide-react';
+import { CloudIcon, DatabaseIcon, MessageCircleIcon, CpuIcon, MusicIcon, YoutubeIcon, ImagesIcon, TerminalIcon } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import ServiceItem from './serviceItem';
 import SystemScreen from './system/screen';
@@ -11,6 +11,7 @@ import CloudScreen from './cloud/screen';
 import FloatAlerts from './floatAlerts';
 import AlertSection from './alertSection';
 import { useAlert } from '../../contexts/AlertContext';
+import DatabaseScreen from './database/screen';
 
 const edgeEventSize = 40;
 const maxEventSize = 200;
@@ -20,7 +21,9 @@ export const serviceMap:Record<string, [string, any]> = {
     'cloud': ['Cloud', CloudIcon],
     'database': ['Database', DatabaseIcon],
     'system': ['System', CpuIcon],
+    'terminal': ['Terminal', TerminalIcon],
     'zone': ['Zone', MessageCircleIcon],
+    'gallery': ['Gallery', ImagesIcon],
     'music': ['Music', MusicIcon],
     'youtube': ['Youtube', YoutubeIcon],
 }
@@ -52,6 +55,16 @@ const MainScreen = () => {
         socket.on("alert", (data: AlertMessage) => {
             setAlerts(prev => [...prev, data]);
             setSurfaceAlerts(prev => [...prev, data.id]);
+        });
+        socket.on("connect", () => {
+            const randId = Math.random().toString(36).substring(7);
+            setAlerts(prev => [...prev, { id: randId, from: 'main', message: 'Connected to server' }]);
+            setSurfaceAlerts(prev => [...prev, randId]);
+        });
+        socket.on("disconnect", () => {
+            const randId = Math.random().toString(36).substring(7);
+            setAlerts(prev => [...prev, { id: randId, from: 'main', message: 'Disconnected from server' }]);
+            setSurfaceAlerts(prev => [...prev, randId]);
         });
     }, [socket, alerts]);
 
@@ -119,6 +132,7 @@ const MainScreen = () => {
         {page && <Navigator label={page} title={serviceMap[page][0]} onBack={() => setPage("")} />}
         <Container ref={realHeightRef}><AnimatePresence>{
             page === 'cloud' ? <CloudScreen h={`${realHeight}px`} key="cloud" /> :
+            page === 'database' ? <DatabaseScreen h={`${realHeight}px`} key="database" /> :
             page === 'system' ? <SystemScreen h={`${realHeight}px`} key="system" /> :
             <Container $absolute key="main" initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} transition={{ duration: .1 }}>
                 <Column $padding='2md' $gap='md'>

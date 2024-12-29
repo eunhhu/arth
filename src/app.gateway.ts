@@ -8,10 +8,8 @@ import { Server, Socket } from "socket.io";
 export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer() server: Server;
 
-    handleConnection(client: Socket, ...args: any[]) {
-        client.emit("alert", { id:Math.random().toString(), from: "system", message: "Connected to server"});
-    }
-
+    handleConnection(client: Socket, ...args: any[]) {}
+    
     handleDisconnect(client: Socket) {}
 
     @SubscribeMessage('route')

@@ -4,6 +4,7 @@ import { AnimatePresence } from "framer-motion";
 import Alert from "./alert";
 import useMobile from "../../hooks/useMobile";
 import { useAlert } from "../../contexts/AlertContext";
+import { serviceMap } from "./screen";
 
 interface AlertSectionProps {
     wAlert: number;
@@ -41,7 +42,7 @@ const AlertSection = ({ wAlert, setWalert, setPage, setStartX }: AlertSectionPro
                         }}
                         onClick={() => {
                             setWalert(0)
-                            setPage(alert.from)
+                            if(serviceMap[alert.from]) setPage(alert.from)
                             setSurfaceAlerts(idxRevoker)
                             if(alert.progress === undefined || alert.progress === 1) setAlerts(revoker)
                         }}

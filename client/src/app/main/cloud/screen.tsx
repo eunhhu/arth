@@ -26,7 +26,7 @@ const CloudScreen = ({h}) => {
     const [onCreate, setOnCreate] = useState<boolean>(false);
     const [onRename, setOnRename] = useState<boolean>(false);
     
-    const buttonProps:CSSProperties = { cursor: isMobile ? "none" : "pointer", userSelect: "none"}
+    const buttonProps:CSSProperties = { cursor: isMobile ? "default" : "pointer", userSelect: "none"}
 
     const uploadAlert = (data: AlertMessage) => {
         setAlerts(prev => [...prev, data]);
@@ -77,18 +77,18 @@ const CloudScreen = ({h}) => {
 
     const handleMove = () => {
         if(selected.length === 0) return;
-        else if(selected.length === 1) return axios.get("/api/cloud/move", {params: {path: selected[0], to: route}}).then(handleOffSelectMode);
+        else if(selected.length === 1) return axios.get("/api/cloud/move", {params: {path: selected[0], to: "/"+route.join("/")}}).then(handleOffSelectMode);
         else axios.post("/api/cloud/moveMany", {paths: selected}, {params: {to: "/"+route.join("/")}}).then(handleOffSelectMode);
     }
 
     const handleCopy = () => {
         if(selected.length === 0) return;
-        else if(selected.length === 1) return axios.get("/api/cloud/copy", {params: {path: selected[0], to: route}}).then(handleOffSelectMode);
+        else if(selected.length === 1) return axios.get("/api/cloud/copy", {params: {path: selected[0], to: "/"+route.join("/")}}).then(handleOffSelectMode);
         else axios.post("/api/cloud/copyMany", {paths: selected}, {params: {to: "/"+route.join("/")}}).then(handleOffSelectMode);
     }
 
     const handleRename = () => {
-        setName('');
+        setName(selected.length === 1 ? selected[0].replaceAll("\\", "/").split("/").pop() || "" : "");
         setOnRename(true);
     }
 
@@ -186,7 +186,7 @@ const CloudScreen = ({h}) => {
             </Row>
             <Row $gap="sm" $width="full">
                 <Input $width="full" placeholder="Search" value={search} onChange={e => setSearch(e.target.value)} $background="surface" $border="1px outline solid" $rounded="xs" $padding="xs" />
-                <Button $background="surface" $border="1px outline solid" $rounded="xs" $padding="xs"><SearchIcon width={32} height={16} /></Button>
+                {/* <Button $background="surface" $border="1px outline solid" $rounded="xs" $padding="xs"><SearchIcon width={32} height={16} /></Button> */}
             </Row>
         </Column>
         <Container $scroll $wrap={view === "grid"}>
@@ -197,7 +197,7 @@ const CloudScreen = ({h}) => {
                 if(sort === 'date') return b.created - a.created;
                 if(sort === 'size') return b.size - a.size;
                 return 0;
-            }).map(file => {
+            }).filter(file => file.name.toLowerCase().includes(search.toLowerCase())).map(file => {
                 const handleSelect = () => {
                     if(selected.includes(file.path)) setSelected(selected.filter(s => s !== file.path));
                     else setSelected([...selected, file.path]);
