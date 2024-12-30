@@ -6,7 +6,7 @@ import { ArrowRightLeftIcon, ChevronUpIcon, CopyIcon, DownloadIcon, FileIcon, Fo
 import useMobile from "../../../hooks/useMobile";
 import ListItem from "./listItem";
 import axios from "axios";
-import OverlayAction from "./overlayAction";
+import OverlayAction from "../../../components/ui/overlayAction";
 import { AnimatePresence } from "framer-motion";
 import { useAlert } from "../../../contexts/AlertContext";
 
