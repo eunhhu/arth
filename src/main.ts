@@ -31,7 +31,14 @@ async function bootstrap() {
   if(!existsSync(config.root)) mkdirSync(config.root, { recursive: true });
   if(!existsSync(config.db)) mkdirSync(config.db, { recursive: true });
   if(!existsSync(config.cloud)) mkdirSync(config.cloud, { recursive: true });
-  if(!existsSync(config.home)) mkdirSync(config.home, { recursive: true });
+  if(!existsSync(config.home)) {
+    console.log(c("yellow", "[Warning]"), "Home directory not found. Creating one...");
+    mkdirSync(config.home, { recursive: true });
+    mkdirSync(config.document, { recursive: true });
+    mkdirSync(config.music, { recursive: true });
+    mkdirSync(config.video, { recursive: true });
+    mkdirSync(config.picture, { recursive: true });
+  }
 
   const app = await NestFactory.create<NestFastifyApplication>(AppModule.forRoot(argv.pin), new FastifyAdapter(), { logger: false });
 
@@ -66,5 +73,6 @@ async function bootstrap() {
   console.log(c("lime", "[Hostname]"), os.hostname());
   console.log(c("lime", "[Node version]"), process.version);
   if(!isAndroid()) console.warn(c("yellow", "[Warning]"), "This OS is not Android, so some features might not be available.");
+
 }
 bootstrap();

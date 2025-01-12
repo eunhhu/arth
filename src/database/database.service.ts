@@ -71,6 +71,7 @@ export class DatabaseService {
         if(!existsSync(dbpath)) throw new Error("Database not found");
         const path = join(dbpath, name);
         if(!existsSync(path)) {
+            console
             return mkdirSync(path);
         } else throw new Error("Collection already exists");
     }
