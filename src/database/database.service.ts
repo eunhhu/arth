@@ -71,7 +71,6 @@ export class DatabaseService {
         if(!existsSync(dbpath)) throw new Error("Database not found");
         const path = join(dbpath, name);
         if(!existsSync(path)) {
-            console
             return mkdirSync(path);
         } else throw new Error("Collection already exists");
     }
@@ -87,7 +86,7 @@ export class DatabaseService {
 
     appendDocument(db:string, collection:string, id:string, data:Record<string, any>) {
         const path = join(this.dbDir, db, collection, `${id}.json`);
-        if(!existsSync(path)) {
+        if(existsSync(path)) {
             const prev = readFileSync(path, "utf-8");
             try{
                 const prevData = JSON.parse(prev);
