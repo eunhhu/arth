@@ -39,6 +39,7 @@
     "@nestjs/swagger": "^8.1.0",
     "@nestjs/websockets": "^10.4.15",
     "axios": "^1.7.9",
+    "better-sqlite3": "^11.10.0",
     "cors": "^2.8.5",
     "fastify-multer": "^2.0.3",
     "fastify-static": "^4.7.0",

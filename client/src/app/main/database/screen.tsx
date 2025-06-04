@@ -2,8 +2,10 @@ import React, { CSSProperties, useEffect, useState } from "react"
 import Page from "../../../components/ui/page"
 import Sidebar from "../../../components/ui/sidebar";
 import { Box, Column, Container, Input, Row, Select, Text } from "../../../components/ui/primitives";
+import OverlayAction from "../../../components/ui/overlayAction";
 import useMobile from "../../../hooks/useMobile";
 import { FilterIcon, PlusIcon } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
 import axios from "axios";
 
 const DatabaseScreen = ({h}) => {
@@ -19,6 +21,7 @@ const DatabaseScreen = ({h}) => {
     const [filtervalue, setFiltervalue] = useState<string>("");
     const [filterop, setFilterop] = useState<string>("eq");
     const [tavalue, setTavalue] = useState<string>("");
+    const [selectedId, setSelectedId] = useState<string>("");
     const [onadd, setOnadd] = useState<boolean>(false);
     const [onedit, setOnedit] = useState<boolean>(false);
     const buttonProps:CSSProperties = { cursor: isMobile ? "default" : "pointer", userSelect: "none"};
@@ -124,6 +127,12 @@ const DatabaseScreen = ({h}) => {
                 </Select>
             </Row>
             <Container $scroll $padding="sm" $gap="sm">
+                <Row $width="full" $justify="end">
+                    <PlusIcon size={24} style={buttonProps} onClick={() => {
+                        setTavalue('{}');
+                        setOnadd(true);
+                    }} />
+                </Row>
                 {documents.length > 0 ? documents.filter(doc => {
                     if (!filterkey || !filtervalue) return true;
                     switch(filterop) {
@@ -135,11 +144,41 @@ const DatabaseScreen = ({h}) => {
                         case "lte": return doc[filterkey] <= filtervalue;
                         default: return true;
                     }
-                }).map((doc) => 
-                <Box key={doc._id} $rounded="sm" $padding="sm" $background="surface" $margin="sm" style={buttonProps}>
+                }).map((doc) =>
+                <Box key={doc._id} $rounded="sm" $padding="sm" $background="surface" $margin="sm" style={buttonProps}
+                    onClick={() => {
+                        axios.get('/api/db/doc', { params: { db, col: collection, id: doc._id } })
+                            .then(res => {
+                                setTavalue(JSON.stringify(res.data, null, 2));
+                                setSelectedId(doc._id);
+                                setOnedit(true);
+                            })
+                    }}>
                     <Text>{doc._id}</Text>
                 </Box>): <Text $width="full" $align="center">No documents found</Text>}
             </Container>
+            <AnimatePresence>
+                {onadd && <OverlayAction key="add" isTextarea value={tavalue} onChange={setTavalue}
+                    onCancel={() => { setOnadd(false); setTavalue(''); }}
+                    actions={[["Create", () => {
+                        try {
+                            const data = JSON.parse(tavalue);
+                            axios.put('/api/db/doc', { db, col: collection, data }).then(() => { fetchDocuments(); setOnadd(false); });
+                        } catch(e) { alert('Invalid JSON'); }
+                    }]]}
+                />}
+                {onedit && <OverlayAction key="edit" isTextarea value={tavalue} onChange={setTavalue}
+                    onCancel={() => { setOnedit(false); setTavalue(''); }}
+                    actions={[["Save", () => {
+                        try {
+                            const data = JSON.parse(tavalue);
+                            axios.patch('/api/db/doc/update', { db, col: collection, id: selectedId, data }).then(() => { fetchDocuments(); setOnedit(false); });
+                        } catch(e) { alert('Invalid JSON'); }
+                    }], ["Delete", () => {
+                        axios.delete('/api/db/doc', { params: { db, col: collection, id: selectedId } }).then(() => { fetchDocuments(); setOnedit(false); });
+                    }]]}
+                />}
+            </AnimatePresence>
         </Column>
         </Row>
     </Page>
