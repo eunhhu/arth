@@ -1,7 +1,7 @@
 {
   "name": "arth",
   "version": "0.1.1",
-  "description": "Android Rmote Termux Host",
+  "description": "Android Remote Termux Host",
   "author": "MswTester",
   "license": "MIT",
   "main": "dist/main.js",
