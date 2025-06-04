@@ -2,7 +2,7 @@
   <img src="client/public/icon.svg" width="120" alt="Arth Logo" />
 </p>
 
-<p align="center">This is a comprehensive server platform built on <a href="https://github.com/nestjs/nest">Nest.js</a>, designed specifically for Android Termux.<p align="center">
+<p align="center">This is a comprehensive server platform built on <a href="https://github.com/nestjs/nest">Nest.js</a>, designed specifically for Android Termux.</p>
 
 ## Description
 
