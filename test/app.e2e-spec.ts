@@ -7,18 +7,20 @@ describe('AppController (e2e)', () => {
   let app: INestApplication;
 
   beforeEach(async () => {
+    const pin = process.env.PIN || '0000';
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      imports: [AppModule.forRoot(pin)],
     }).compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
   });
 
-  it('/ (GET)', () => {
+  it('/pin (GET)', () => {
+    const pin = process.env.PIN || '0000';
     return request(app.getHttpServer())
-      .get('/')
+      .get(`/pin?q=${pin}`)
       .expect(200)
-      .expect('Hello World!');
+      .expect('success');
   });
 });
