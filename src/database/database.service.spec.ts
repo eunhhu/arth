@@ -6,7 +6,12 @@ import { getConfig } from 'src/lib/util';
 
 // Mock dependencies
 jest.mock('fs');
-jest.mock('better-sqlite3');
+jest.mock('better-sqlite3', () => {
+  const mock = jest.fn();
+  // Support both `import Database from 'better-sqlite3'`
+  // and `const Database = require('better-sqlite3')`.
+  return Object.assign(mock, { __esModule: true, default: mock });
+});
 jest.mock('src/lib/util', () => ({
   getConfig: jest.fn(),
 }));
@@ -15,20 +20,19 @@ const mockGetConfig = getConfig as jest.Mock;
 const mockFsExistsSync = fs.existsSync as jest.Mock;
 const mockFsReaddirSync = fs.readdirSync as jest.Mock;
 const mockFsRmSync = fs.rmSync as jest.Mock;
-const mockFsMkdirSync = fs.mkdirSync as jest.Mock; // Though not directly used by service, good to have if tests expand
+const mockFsMkdirSync = fs.mkdirSync as jest.Mock;
 
-const mockDbInstance = {
-  prepare: jest.fn(),
-  close: jest.fn(),
-};
 const mockDbStatement = {
   all: jest.fn(),
   get: jest.fn(),
   run: jest.fn(),
 };
+const mockDbInstance = {
+  prepare: jest.fn(() => mockDbStatement),
+  close: jest.fn(),
+};
 
 (Database as unknown as jest.Mock).mockImplementation(() => mockDbInstance);
-mockDbInstance.prepare.mockImplementation(() => mockDbStatement);
 
 describe('DatabaseService', () => {
   let service: DatabaseService;
@@ -56,7 +60,11 @@ describe('DatabaseService', () => {
 
   describe('getDatabases', () => {
     it('should return a list of database names', () => {
-      mockFsReaddirSync.mockReturnValue(['db1.sqlite', 'db2.sqlite', 'config.txt']);
+      mockFsReaddirSync.mockReturnValue([
+        'db1.sqlite',
+        'db2.sqlite',
+        'config.txt',
+      ]);
       const dbs = service.getDatabases();
       expect(mockFsReaddirSync).toHaveBeenCalledWith(testDbDir);
       expect(dbs).toEqual(['db1', 'db2']);
@@ -69,7 +77,9 @@ describe('DatabaseService', () => {
       mockDbStatement.all.mockReturnValue([{ name: 'col1' }, { name: 'col2' }]);
       const collections = service.getCollections('testDb');
       expect(Database).toHaveBeenCalledWith(`${testDbDir}/testDb.sqlite`);
-      expect(mockDbInstance.prepare).toHaveBeenCalledWith("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
+      expect(mockDbInstance.prepare).toHaveBeenCalledWith(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+      );
       expect(mockDbStatement.all).toHaveBeenCalled();
       expect(mockDbInstance.close).toHaveBeenCalled();
       expect(collections).toEqual(['col1', 'col2']);
@@ -77,28 +87,38 @@ describe('DatabaseService', () => {
 
     it('should throw if database file does not exist', () => {
       mockFsExistsSync.mockReturnValue(false);
-      expect(() => service.getCollections('nonExistentDb')).toThrow('Database not found');
+      expect(() => service.getCollections('nonExistentDb')).toThrow(
+        'Database not found',
+      );
     });
   });
 
   describe('getDocuments', () => {
     const dbName = 'myDb';
     const collectionName = 'myCollection';
-    const mockDocs = [{ _id: '1', data: '{"name":"doc1"}' }, { _id: '2', data: '{"name":"doc2"}' }];
-    const parsedDocs = [{name: "doc1"}, {name: "doc2"}];
-
+    const mockDocs = [
+      { _id: '1', data: '{"name":"doc1"}' },
+      { _id: '2', data: '{"name":"doc2"}' },
+    ];
+    const parsedDocs = [{ name: 'doc1' }, { name: 'doc2' }];
 
     it('should return documents from a collection', () => {
       mockFsExistsSync.mockReturnValue(true); // For open() and hasTable
       mockDbStatement.get.mockReturnValue({ name: collectionName }); // For hasTable
-      mockDbStatement.all.mockReturnValue(mockDocs.map(d => ({ id: d._id, data: d.data })));
+      mockDbStatement.all.mockReturnValue(
+        mockDocs.map((d) => ({ id: d._id, data: d.data })),
+      );
 
       const documents = service.getDocuments(dbName, collectionName);
 
       expect(Database).toHaveBeenCalledWith(`${testDbDir}/${dbName}.sqlite`);
-      expect(mockDbInstance.prepare).toHaveBeenCalledWith(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`);
+      expect(mockDbInstance.prepare).toHaveBeenCalledWith(
+        `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
+      );
       expect(mockDbStatement.get).toHaveBeenCalledWith(collectionName); // from hasTable
-      expect(mockDbInstance.prepare).toHaveBeenCalledWith(`SELECT id, data FROM ${collectionName}`);
+      expect(mockDbInstance.prepare).toHaveBeenCalledWith(
+        `SELECT id, data FROM ${collectionName}`,
+      );
       expect(mockDbStatement.all).toHaveBeenCalled();
       expect(documents).toEqual(parsedDocs);
       expect(mockDbInstance.close).toHaveBeenCalledTimes(1); // ensure db is closed
@@ -107,30 +127,51 @@ describe('DatabaseService', () => {
     it('should throw if collection not found', () => {
       mockFsExistsSync.mockReturnValue(true);
       mockDbStatement.get.mockReturnValue(null); // Simulate collection not found in hasTable
-      expect(() => service.getDocuments(dbName, 'nonExistentCollection')).toThrow('Collection not found');
+      expect(() =>
+        service.getDocuments(dbName, 'nonExistentCollection'),
+      ).toThrow('Collection not found');
       expect(mockDbInstance.close).toHaveBeenCalledTimes(1);
     });
 
     it('should sort documents if sort options are provided', () => {
-        mockFsExistsSync.mockReturnValue(true);
-        mockDbStatement.get.mockReturnValue({ name: collectionName }); // For hasTable
-        const unsortedDocs = [ { data: '{"name":"Charlie", "age":30}' }, { data: '{"name":"Alice", "age":20}' }, { data: '{"name":"Bob", "age":25}' }];
-        const expectedSortedDocs = [ {name:"Alice", age:20}, {name:"Bob", age:25}, {name:"Charlie", age:30}];
-        mockDbStatement.all.mockReturnValue(unsortedDocs);
+      mockFsExistsSync.mockReturnValue(true);
+      mockDbStatement.get.mockReturnValue({ name: collectionName }); // For hasTable
+      const unsortedDocs = [
+        { data: '{"name":"Charlie", "age":30}' },
+        { data: '{"name":"Alice", "age":20}' },
+        { data: '{"name":"Bob", "age":25}' },
+      ];
+      const expectedSortedDocs = [
+        { name: 'Alice', age: 20 },
+        { name: 'Bob', age: 25 },
+        { name: 'Charlie', age: 30 },
+      ];
+      mockDbStatement.all.mockReturnValue(unsortedDocs);
 
-        const documents = service.getDocuments(dbName, collectionName, { sortField: 'age', sortOrder: 'asc' });
-        expect(documents).toEqual(expectedSortedDocs);
+      const documents = service.getDocuments(dbName, collectionName, {
+        sortField: 'age',
+        sortOrder: 'asc',
+      });
+      expect(documents).toEqual(expectedSortedDocs);
     });
 
     it('should limit and skip documents if options are provided', () => {
-        mockFsExistsSync.mockReturnValue(true);
-        mockDbStatement.get.mockReturnValue({ name: collectionName }); // For hasTable
-        const allDocs = [ { data: '{"id":"1"}' }, { data: '{"id":"2"}' }, { data: '{"id":"3"}' }, { data: '{"id":"4"}' }];
-        const expectedDocs = [JSON.parse(allDocs[1].data)]; // Skip 1, Limit 1
-        mockDbStatement.all.mockReturnValue(allDocs);
+      mockFsExistsSync.mockReturnValue(true);
+      mockDbStatement.get.mockReturnValue({ name: collectionName }); // For hasTable
+      const allDocs = [
+        { data: '{"id":"1"}' },
+        { data: '{"id":"2"}' },
+        { data: '{"id":"3"}' },
+        { data: '{"id":"4"}' },
+      ];
+      const expectedDocs = [JSON.parse(allDocs[1].data)]; // Skip 1, Limit 1
+      mockDbStatement.all.mockReturnValue(allDocs);
 
-        const documents = service.getDocuments(dbName, collectionName, { skip: 1, limit: 1 });
-        expect(documents).toEqual(expectedDocs);
+      const documents = service.getDocuments(dbName, collectionName, {
+        skip: 1,
+        limit: 1,
+      });
+      expect(documents).toEqual(expectedDocs);
     });
   });
 
@@ -143,12 +184,18 @@ describe('DatabaseService', () => {
     it('should return a single document by id', () => {
       mockFsExistsSync.mockReturnValue(true);
       mockDbStatement.get.mockReturnValueOnce({ name: collectionName }); // For hasTable
-      mockDbStatement.get.mockReturnValueOnce({ data: JSON.stringify(mockDocData) }); // For actual getDocument call
+      mockDbStatement.get.mockReturnValueOnce({
+        data: JSON.stringify(mockDocData),
+      }); // For actual getDocument call
 
       const document = service.getDocument(dbName, collectionName, docId);
 
-      expect(mockDbInstance.prepare).toHaveBeenCalledWith(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`); // hasTable
-      expect(mockDbInstance.prepare).toHaveBeenCalledWith(`SELECT data FROM ${collectionName} WHERE id = ?`);
+      expect(mockDbInstance.prepare).toHaveBeenCalledWith(
+        `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
+      ); // hasTable
+      expect(mockDbInstance.prepare).toHaveBeenCalledWith(
+        `SELECT data FROM ${collectionName} WHERE id = ?`,
+      );
       expect(mockDbStatement.get).toHaveBeenCalledWith(docId);
       expect(document).toEqual(mockDocData);
       expect(mockDbInstance.close).toHaveBeenCalledTimes(1);
@@ -158,23 +205,29 @@ describe('DatabaseService', () => {
       mockFsExistsSync.mockReturnValue(true);
       mockDbStatement.get.mockReturnValueOnce({ name: collectionName }); // For hasTable
       mockDbStatement.get.mockReturnValueOnce(null); // Simulate document not found
-      expect(() => service.getDocument(dbName, collectionName, 'nonExistentId')).toThrow('Document not found');
+      expect(() =>
+        service.getDocument(dbName, collectionName, 'nonExistentId'),
+      ).toThrow('Document not found');
       expect(mockDbInstance.close).toHaveBeenCalledTimes(1);
     });
 
     it('should throw if collection not found', () => {
-        mockFsExistsSync.mockReturnValue(true);
-        mockDbStatement.get.mockReturnValue(null); // hasTable returns false
-        expect(() => service.getDocument(dbName, "badCollection", docId)).toThrow('Collection not found');
-        expect(mockDbInstance.close).toHaveBeenCalledTimes(1);
+      mockFsExistsSync.mockReturnValue(true);
+      mockDbStatement.get.mockReturnValue(null); // hasTable returns false
+      expect(() => service.getDocument(dbName, 'badCollection', docId)).toThrow(
+        'Collection not found',
+      );
+      expect(mockDbInstance.close).toHaveBeenCalledTimes(1);
     });
 
     it('should throw if document data is invalid JSON', () => {
-        mockFsExistsSync.mockReturnValue(true);
-        mockDbStatement.get.mockReturnValueOnce({ name: collectionName }); // For hasTable
-        mockDbStatement.get.mockReturnValueOnce({ data: "invalid json" });
-        expect(() => service.getDocument(dbName, collectionName, docId)).toThrow('Invalid document');
-        expect(mockDbInstance.close).toHaveBeenCalledTimes(1);
+      mockFsExistsSync.mockReturnValue(true);
+      mockDbStatement.get.mockReturnValueOnce({ name: collectionName }); // For hasTable
+      mockDbStatement.get.mockReturnValueOnce({ data: 'invalid json' });
+      expect(() => service.getDocument(dbName, collectionName, docId)).toThrow(
+        'Invalid document',
+      );
+      expect(mockDbInstance.close).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -182,14 +235,18 @@ describe('DatabaseService', () => {
     it('should create a database file if it does not exist', () => {
       mockFsExistsSync.mockReturnValue(false);
       service.createDatabase('newDb');
-      expect(mockFsExistsSync).toHaveBeenCalledWith(`${testDbDir}/newDb.sqlite`);
+      expect(mockFsExistsSync).toHaveBeenCalledWith(
+        `${testDbDir}/newDb.sqlite`,
+      );
       expect(Database).toHaveBeenCalledWith(`${testDbDir}/newDb.sqlite`);
       expect(mockDbInstance.close).toHaveBeenCalled();
     });
 
     it('should throw if database already exists', () => {
       mockFsExistsSync.mockReturnValue(true);
-      expect(() => service.createDatabase('existingDb')).toThrow('Database already exists');
+      expect(() => service.createDatabase('existingDb')).toThrow(
+        'Database already exists',
+      );
     });
   });
 
@@ -203,9 +260,13 @@ describe('DatabaseService', () => {
 
       service.createCollection(dbName, newCollectionName);
 
-      expect(mockDbInstance.prepare).toHaveBeenCalledWith(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`);
+      expect(mockDbInstance.prepare).toHaveBeenCalledWith(
+        `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
+      );
       expect(mockDbStatement.get).toHaveBeenCalledWith(newCollectionName);
-      expect(mockDbInstance.prepare).toHaveBeenCalledWith(`CREATE TABLE IF NOT EXISTS ${newCollectionName} (id TEXT PRIMARY KEY, data TEXT)`);
+      expect(mockDbInstance.prepare).toHaveBeenCalledWith(
+        `CREATE TABLE IF NOT EXISTS ${newCollectionName} (id TEXT PRIMARY KEY, data TEXT)`,
+      );
       expect(mockDbStatement.run).toHaveBeenCalled();
       expect(mockDbInstance.close).toHaveBeenCalled();
     });
@@ -213,7 +274,9 @@ describe('DatabaseService', () => {
     it('should throw if collection already exists', () => {
       mockFsExistsSync.mockReturnValue(true);
       mockDbStatement.get.mockReturnValue({ name: newCollectionName }); // Collection exists
-      expect(() => service.createCollection(dbName, newCollectionName)).toThrow('Collection already exists');
+      expect(() => service.createCollection(dbName, newCollectionName)).toThrow(
+        'Collection already exists',
+      );
       expect(mockDbInstance.close).toHaveBeenCalled();
     });
   });
@@ -229,11 +292,15 @@ describe('DatabaseService', () => {
       const expectedId = Date.now().toString(); // Approximate, timing dependent
       jest.spyOn(Date, 'now').mockReturnValue(parseInt(expectedId));
 
-
       service.createDocument(dbName, collectionName, docData);
 
-      expect(mockDbInstance.prepare).toHaveBeenCalledWith(`INSERT INTO ${collectionName} (id, data) VALUES (?, ?)`);
-      expect(mockDbStatement.run).toHaveBeenCalledWith(expectedId, JSON.stringify({ ...docData, _id: expectedId }));
+      expect(mockDbInstance.prepare).toHaveBeenCalledWith(
+        `INSERT INTO ${collectionName} (id, data) VALUES (?, ?)`,
+      );
+      expect(mockDbStatement.run).toHaveBeenCalledWith(
+        expectedId,
+        JSON.stringify({ ...docData, _id: expectedId }),
+      );
       expect(mockDbInstance.close).toHaveBeenCalled();
     });
 
@@ -244,7 +311,10 @@ describe('DatabaseService', () => {
 
       service.createDocument(dbName, collectionName, docData, providedId);
 
-      expect(mockDbStatement.run).toHaveBeenCalledWith(providedId, JSON.stringify({ ...docData, _id: providedId }));
+      expect(mockDbStatement.run).toHaveBeenCalledWith(
+        providedId,
+        JSON.stringify({ ...docData, _id: providedId }),
+      );
     });
 
     it('should throw if document already exists (duplicate id)', () => {
@@ -257,15 +327,19 @@ describe('DatabaseService', () => {
         throw error;
       });
 
-      expect(() => service.createDocument(dbName, collectionName, docData, 'existingId')).toThrow('Document already exists');
+      expect(() =>
+        service.createDocument(dbName, collectionName, docData, 'existingId'),
+      ).toThrow('Document already exists');
       expect(mockDbInstance.close).toHaveBeenCalled();
     });
 
     it('should throw if collection not found', () => {
-        mockFsExistsSync.mockReturnValue(true);
-        mockDbStatement.get.mockReturnValue(null); // collection does not exist
-        expect(() => service.createDocument(dbName, "badCollection", docData)).toThrow("Collection not found");
-        expect(mockDbInstance.close).toHaveBeenCalled();
+      mockFsExistsSync.mockReturnValue(true);
+      mockDbStatement.get.mockReturnValue(null); // collection does not exist
+      expect(() =>
+        service.createDocument(dbName, 'badCollection', docData),
+      ).toThrow('Collection not found');
+      expect(mockDbInstance.close).toHaveBeenCalled();
     });
   });
 
@@ -282,8 +356,13 @@ describe('DatabaseService', () => {
 
       service.updateDocument(dbName, collectionName, docId, docData);
 
-      expect(mockDbInstance.prepare).toHaveBeenCalledWith(`UPDATE ${collectionName} SET data = ? WHERE id = ?`);
-      expect(mockDbStatement.run).toHaveBeenCalledWith(JSON.stringify({ ...docData, _id: docId }), docId);
+      expect(mockDbInstance.prepare).toHaveBeenCalledWith(
+        `UPDATE ${collectionName} SET data = ? WHERE id = ?`,
+      );
+      expect(mockDbStatement.run).toHaveBeenCalledWith(
+        JSON.stringify({ ...docData, _id: docId }),
+        docId,
+      );
       expect(mockDbInstance.close).toHaveBeenCalled();
     });
 
@@ -292,7 +371,14 @@ describe('DatabaseService', () => {
       mockDbStatement.get.mockReturnValue({ name: collectionName }); // Collection exists
       mockDbStatement.run.mockReturnValue({ changes: 0 }); // Simulate 0 rows updated
 
-      expect(() => service.updateDocument(dbName, collectionName, 'nonExistentId', docData)).toThrow('Document not found');
+      expect(() =>
+        service.updateDocument(
+          dbName,
+          collectionName,
+          'nonExistentId',
+          docData,
+        ),
+      ).toThrow('Document not found');
       expect(mockDbInstance.close).toHaveBeenCalled();
     });
   });
@@ -301,13 +387,19 @@ describe('DatabaseService', () => {
     it('should delete the database file if it exists', () => {
       mockFsExistsSync.mockReturnValue(true);
       service.deleteDatabase('dbToDelete');
-      expect(mockFsExistsSync).toHaveBeenCalledWith(`${testDbDir}/dbToDelete.sqlite`);
-      expect(mockFsRmSync).toHaveBeenCalledWith(`${testDbDir}/dbToDelete.sqlite`);
+      expect(mockFsExistsSync).toHaveBeenCalledWith(
+        `${testDbDir}/dbToDelete.sqlite`,
+      );
+      expect(mockFsRmSync).toHaveBeenCalledWith(
+        `${testDbDir}/dbToDelete.sqlite`,
+      );
     });
 
     it('should throw if database to delete does not exist', () => {
       mockFsExistsSync.mockReturnValue(false);
-      expect(() => service.deleteDatabase('nonExistentDb')).toThrow('Database not found');
+      expect(() => service.deleteDatabase('nonExistentDb')).toThrow(
+        'Database not found',
+      );
     });
   });
 
@@ -321,7 +413,9 @@ describe('DatabaseService', () => {
 
       service.deleteCollection(dbName, collectionName);
 
-      expect(mockDbInstance.prepare).toHaveBeenCalledWith(`DROP TABLE IF EXISTS ${collectionName}`);
+      expect(mockDbInstance.prepare).toHaveBeenCalledWith(
+        `DROP TABLE IF EXISTS ${collectionName}`,
+      );
       expect(mockDbStatement.run).toHaveBeenCalled();
       expect(mockDbInstance.close).toHaveBeenCalled();
     });
@@ -329,7 +423,9 @@ describe('DatabaseService', () => {
     it('should throw if collection to delete does not exist', () => {
       mockFsExistsSync.mockReturnValue(true);
       mockDbStatement.get.mockReturnValue(null); // Collection does not exist
-      expect(() => service.deleteCollection(dbName, 'nonExistentCollection')).toThrow('Collection not found');
+      expect(() =>
+        service.deleteCollection(dbName, 'nonExistentCollection'),
+      ).toThrow('Collection not found');
       expect(mockDbInstance.close).toHaveBeenCalled();
     });
   });
@@ -346,7 +442,9 @@ describe('DatabaseService', () => {
 
       service.deleteDocument(dbName, collectionName, docId);
 
-      expect(mockDbInstance.prepare).toHaveBeenCalledWith(`DELETE FROM ${collectionName} WHERE id = ?`);
+      expect(mockDbInstance.prepare).toHaveBeenCalledWith(
+        `DELETE FROM ${collectionName} WHERE id = ?`,
+      );
       expect(mockDbStatement.run).toHaveBeenCalledWith(docId);
       expect(mockDbInstance.close).toHaveBeenCalled();
     });
@@ -356,7 +454,9 @@ describe('DatabaseService', () => {
       mockDbStatement.get.mockReturnValue({ name: collectionName }); // Collection exists
       mockDbStatement.run.mockReturnValue({ changes: 0 }); // 0 rows deleted
 
-      expect(() => service.deleteDocument(dbName, collectionName, 'nonExistentId')).toThrow('Document not found');
+      expect(() =>
+        service.deleteDocument(dbName, collectionName, 'nonExistentId'),
+      ).toThrow('Document not found');
       expect(mockDbInstance.close).toHaveBeenCalled();
     });
   });
@@ -370,18 +470,37 @@ describe('DatabaseService', () => {
     const docId = 'docToAppend';
     const existingData = { name: 'Original', count: 1 };
     const newData = { count: 2, newField: 'added' };
-    const expectedData = { name: 'Original', count: 2, newField: 'added', _id: docId };
+    // appendDocument passes { ...prev, ...data } straight into updateDocument;
+    // it does not inject _id itself — that's updateDocument's responsibility.
+    const expectedData = {
+      name: 'Original',
+      count: 2,
+      newField: 'added',
+    };
 
     it('should append data to an existing document', () => {
-      // Mock getDocument
-      const getDocumentSpy = jest.spyOn(service, 'getDocument').mockResolvedValueOnce(existingData as any);
+      // Mock getDocument (sync in implementation)
+      const getDocumentSpy = jest
+        .spyOn(service, 'getDocument')
+        .mockReturnValueOnce(existingData as any);
       // Mock updateDocument
-      const updateDocumentSpy = jest.spyOn(service, 'updateDocument').mockResolvedValueOnce(undefined);
+      const updateDocumentSpy = jest
+        .spyOn(service, 'updateDocument')
+        .mockReturnValueOnce(undefined as unknown as never);
 
       service.appendDocument(dbName, collectionName, docId, newData);
 
-      expect(getDocumentSpy).toHaveBeenCalledWith(dbName, collectionName, docId);
-      expect(updateDocumentSpy).toHaveBeenCalledWith(dbName, collectionName, docId, expectedData);
+      expect(getDocumentSpy).toHaveBeenCalledWith(
+        dbName,
+        collectionName,
+        docId,
+      );
+      expect(updateDocumentSpy).toHaveBeenCalledWith(
+        dbName,
+        collectionName,
+        docId,
+        expectedData,
+      );
     });
   });
 
@@ -401,11 +520,17 @@ describe('DatabaseService', () => {
     ];
 
     it('should filter documents based on field and value', () => {
-      const getDocumentsSpy = jest.spyOn(service, 'getDocuments').mockReturnValue(allDocs);
-      const results = service.searchDocuments(dbName, collectionName, field, value);
+      const getDocumentsSpy = jest
+        .spyOn(service, 'getDocuments')
+        .mockReturnValue(allDocs);
+      const results = service.searchDocuments(
+        dbName,
+        collectionName,
+        field,
+        value,
+      );
       expect(getDocumentsSpy).toHaveBeenCalledWith(dbName, collectionName);
       expect(results).toEqual(expectedDocs);
     });
   });
-
 });

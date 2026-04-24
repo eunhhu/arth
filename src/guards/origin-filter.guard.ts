@@ -11,6 +11,9 @@ export class OriginFilterGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const origin = request.headers.origin || request.headers.referer;
 
-    return origin && this.allowedOrigins.some((allowed) => origin.startsWith(allowed));
+    return (
+      origin &&
+      this.allowedOrigins.some((allowed) => origin.startsWith(allowed))
+    );
   }
 }

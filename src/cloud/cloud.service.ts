@@ -1,6 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { createReadStream, createWriteStream, existsSync, lstatSync } from 'fs';
-import { cp, lstat, mkdir, readdir, readFile, rename, rm, writeFile } from 'fs/promises';
+import {
+  cp,
+  lstat,
+  mkdir,
+  readdir,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} from 'fs/promises';
 import { FastifyReply } from 'fastify';
 import { join } from 'path';
 import { MultipartFile } from '@fastify/multipart';
@@ -17,13 +26,15 @@ export class CloudService {
 
   private ensureExists(path: string): string {
     const resolved = this.resolvePath(path);
-    if (!existsSync(resolved)) throw new Error(`Path not found: ${path} | ${resolved}`);
+    if (!existsSync(resolved))
+      throw new Error(`Path not found: ${path} | ${resolved}`);
     return resolved;
   }
 
   private ensureAllExist(paths: string[]): string[] {
     const resolvedPaths = paths.map((p) => this.resolvePath(p));
-    if (!resolvedPaths.every((rp) => existsSync(rp))) throw new Error('Some paths not found');
+    if (!resolvedPaths.every((rp) => existsSync(rp)))
+      throw new Error('Some paths not found');
     return resolvedPaths;
   }
 
@@ -67,21 +78,34 @@ export class CloudService {
     };
   }
 
-  async find(dir: string, name: string, type: 'file' | 'dir' = 'file', depths = 4): Promise<FileInfo[]> {
+  async find(
+    dir: string,
+    name: string,
+    type: 'file' | 'dir' = 'file',
+    depths = 4,
+  ): Promise<FileInfo[]> {
     if (depths < 0) return [];
     this.ensureExists(dir);
     const files = await this.list(dir);
     const matched = files.filter(
-      (f) => f.name.includes(name) && (type === 'file' ? !f.isDirectory : f.isDirectory),
+      (f) =>
+        f.name.includes(name) &&
+        (type === 'file' ? !f.isDirectory : f.isDirectory),
     );
     const subdirs = files.filter((f) => f.isDirectory);
     const results = await Promise.all(
-      subdirs.map((sd) => this.find(join(dir, sd.name), name, type, depths - 1)),
+      subdirs.map((sd) =>
+        this.find(join(dir, sd.name), name, type, depths - 1),
+      ),
     );
     return matched.concat(...results);
   }
 
-  async findContent(dir: string, content: string, depths = 4): Promise<FileInfo[]> {
+  async findContent(
+    dir: string,
+    content: string,
+    depths = 4,
+  ): Promise<FileInfo[]> {
     if (depths < 0) return [];
     this.ensureExists(dir);
     const result: FileInfo[] = [];
@@ -105,7 +129,8 @@ export class CloudService {
 
   async read(filePath: string): Promise<string> {
     const resolved = this.ensureExists(filePath);
-    if (lstatSync(resolved).isDirectory()) throw new Error('Cannot read a directory');
+    if (lstatSync(resolved).isDirectory())
+      throw new Error('Cannot read a directory');
     const content = await readFile(resolved, 'utf-8');
     try {
       return JSON.parse(content);
@@ -121,8 +146,13 @@ export class CloudService {
 
   async write(filePath: string, data: string): Promise<void> {
     const resolved = this.ensureExists(filePath);
-    if (lstatSync(resolved).isDirectory()) throw new Error('Cannot write to a directory');
-    await writeFile(resolved, typeof data === 'string' ? data : JSON.stringify(data), 'utf-8');
+    if (lstatSync(resolved).isDirectory())
+      throw new Error('Cannot write to a directory');
+    await writeFile(
+      resolved,
+      typeof data === 'string' ? data : JSON.stringify(data),
+      'utf-8',
+    );
   }
 
   async writeMany(paths: string[], data: string[]): Promise<void> {
@@ -197,7 +227,10 @@ export class CloudService {
     const stat = await lstat(resolved);
     res
       .header('Content-Type', 'application/octet-stream')
-      .header('Content-Disposition', `attachment; filename="${splitPath(dir).pop()}"`)
+      .header(
+        'Content-Disposition',
+        `attachment; filename="${splitPath(dir).pop()}"`,
+      )
       .header('Content-Length', stat.size);
     if (stat.isDirectory()) throw new Error('Cannot download a directory');
     createReadStream(resolved).pipe(res.raw);
@@ -205,7 +238,7 @@ export class CloudService {
 
   async upload(
     dir: string,
-    files:  AsyncIterableIterator<MultipartFile>
+    files: AsyncIterableIterator<MultipartFile>,
   ): Promise<() => void> {
     const resolved = this.resolvePath(dir);
     const uploadPromises = [];
@@ -221,7 +254,7 @@ export class CloudService {
     }
     await Promise.all(uploadPromises);
     return () => {
-      uploadPromises.forEach(p => p.cancel());
+      uploadPromises.forEach((p) => p.cancel());
     };
   }
 

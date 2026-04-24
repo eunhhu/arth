@@ -1,9 +1,27 @@
 {
   "name": "arth",
   "version": "0.1.1",
-  "description": "Android Remote Termux Host",
-  "author": "MswTester",
+  "description": "Android Remote Termux Host — a NestJS+Fastify server that turns an Android/Termux device into a personal cloud, DB, and system-info host.",
+  "author": "eunhhu (MswTester)",
   "license": "MIT",
+  "homepage": "https://github.com/eunhhu/arth#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eunhhu/arth.git"
+  },
+  "bugs": {
+    "url": "https://github.com/eunhhu/arth/issues"
+  },
+  "keywords": [
+    "android",
+    "termux",
+    "nestjs",
+    "fastify",
+    "cloud",
+    "server",
+    "self-hosted",
+    "remote"
+  ],
   "main": "dist/main.js",
   "bin": {
     "arth": "dist/main.js"

@@ -50,7 +50,9 @@ describe('CloudService', () => {
     it('should return false if path does not exist', () => {
       (fs.existsSync as jest.Mock).mockReturnValue(false);
       const result = service.exists('some/other/path');
-      expect(fs.existsSync).toHaveBeenCalledWith(`${testCloudDir}/some/other/path`);
+      expect(fs.existsSync).toHaveBeenCalledWith(
+        `${testCloudDir}/some/other/path`,
+      );
       expect(result).toBe(false);
     });
   });
@@ -66,7 +68,9 @@ describe('CloudService', () => {
     });
 
     it('should return false if any path does not exist', () => {
-      (fs.existsSync as jest.Mock).mockImplementation((path) => path.endsWith('path1'));
+      (fs.existsSync as jest.Mock).mockImplementation((path) =>
+        path.endsWith('path1'),
+      );
       const paths = ['path1', 'path2'];
       const result = service.existsMany(paths);
       expect(fs.existsSync).toHaveBeenCalledWith(`${testCloudDir}/path1`);
@@ -82,13 +86,20 @@ describe('CloudService', () => {
 
       await service.createDir('base', 'newDir');
       expect(fs.existsSync).toHaveBeenCalledWith(`${testCloudDir}/base/newDir`);
-      expect(fsPromises.mkdir).toHaveBeenCalledWith(`${testCloudDir}/base/newDir`, { recursive: true });
+      expect(fsPromises.mkdir).toHaveBeenCalledWith(
+        `${testCloudDir}/base/newDir`,
+        { recursive: true },
+      );
     });
 
     it('should throw an error if directory already exists', async () => {
       (fs.existsSync as jest.Mock).mockReturnValue(true);
-      await expect(service.createDir('base', 'existingDir')).rejects.toThrow('Directory already exists');
-      expect(fs.existsSync).toHaveBeenCalledWith(`${testCloudDir}/base/existingDir`);
+      await expect(service.createDir('base', 'existingDir')).rejects.toThrow(
+        'Directory already exists',
+      );
+      expect(fs.existsSync).toHaveBeenCalledWith(
+        `${testCloudDir}/base/existingDir`,
+      );
       expect(fsPromises.mkdir).not.toHaveBeenCalled();
     });
   });
@@ -99,14 +110,23 @@ describe('CloudService', () => {
       (fsPromises.writeFile as jest.Mock).mockResolvedValue(undefined);
 
       await service.createFile('base', 'newFile.txt');
-      expect(fs.existsSync).toHaveBeenCalledWith(`${testCloudDir}/base/newFile.txt`);
-      expect(fsPromises.writeFile).toHaveBeenCalledWith(`${testCloudDir}/base/newFile.txt`, '');
+      expect(fs.existsSync).toHaveBeenCalledWith(
+        `${testCloudDir}/base/newFile.txt`,
+      );
+      expect(fsPromises.writeFile).toHaveBeenCalledWith(
+        `${testCloudDir}/base/newFile.txt`,
+        '',
+      );
     });
 
     it('should throw an error if file already exists', async () => {
       (fs.existsSync as jest.Mock).mockReturnValue(true);
-      await expect(service.createFile('base', 'existingFile.txt')).rejects.toThrow('File already exists');
-      expect(fs.existsSync).toHaveBeenCalledWith(`${testCloudDir}/base/existingFile.txt`);
+      await expect(
+        service.createFile('base', 'existingFile.txt'),
+      ).rejects.toThrow('File already exists');
+      expect(fs.existsSync).toHaveBeenCalledWith(
+        `${testCloudDir}/base/existingFile.txt`,
+      );
       expect(fsPromises.writeFile).not.toHaveBeenCalled();
     });
   });
@@ -122,7 +142,10 @@ describe('CloudService', () => {
       const result = await service.read(filePath);
       expect(fs.existsSync).toHaveBeenCalledWith(`${testCloudDir}/${filePath}`);
       expect(fs.lstatSync).toHaveBeenCalledWith(`${testCloudDir}/${filePath}`);
-      expect(fsPromises.readFile).toHaveBeenCalledWith(`${testCloudDir}/${filePath}`, 'utf-8');
+      expect(fsPromises.readFile).toHaveBeenCalledWith(
+        `${testCloudDir}/${filePath}`,
+        'utf-8',
+      );
       expect(result).toBe(content);
     });
 
@@ -131,7 +154,9 @@ describe('CloudService', () => {
       const jsonData = { key: 'value' };
       (fs.existsSync as jest.Mock).mockReturnValue(true);
       (fs.lstatSync as jest.Mock).mockReturnValue({ isDirectory: () => false });
-      (fsPromises.readFile as jest.Mock).mockResolvedValue(JSON.stringify(jsonData));
+      (fsPromises.readFile as jest.Mock).mockResolvedValue(
+        JSON.stringify(jsonData),
+      );
 
       const result = await service.read(filePath);
       expect(result).toEqual(jsonData);
@@ -139,13 +164,17 @@ describe('CloudService', () => {
 
     it('should throw an error if path does not exist', async () => {
       (fs.existsSync as jest.Mock).mockReturnValue(false);
-      await expect(service.read('nonexistent.txt')).rejects.toThrow('Path not found');
+      await expect(service.read('nonexistent.txt')).rejects.toThrow(
+        'Path not found',
+      );
     });
 
     it('should throw an error if path is a directory', async () => {
       (fs.existsSync as jest.Mock).mockReturnValue(true);
       (fs.lstatSync as jest.Mock).mockReturnValue({ isDirectory: () => true });
-      await expect(service.read('directory/')).rejects.toThrow('Cannot read a directory');
+      await expect(service.read('directory/')).rejects.toThrow(
+        'Cannot read a directory',
+      );
     });
   });
 
@@ -160,29 +189,41 @@ describe('CloudService', () => {
       await service.write(filePath, data);
       expect(fs.existsSync).toHaveBeenCalledWith(`${testCloudDir}/${filePath}`);
       expect(fs.lstatSync).toHaveBeenCalledWith(`${testCloudDir}/${filePath}`);
-      expect(fsPromises.writeFile).toHaveBeenCalledWith(`${testCloudDir}/${filePath}`, data, 'utf-8');
+      expect(fsPromises.writeFile).toHaveBeenCalledWith(
+        `${testCloudDir}/${filePath}`,
+        data,
+        'utf-8',
+      );
     });
 
     it('should stringify data if it is not a string', async () => {
-        const filePath = 'file.json';
-        const data = { key: 'value' };
-        (fs.existsSync as jest.Mock).mockReturnValue(true);
-        (fs.lstatSync as jest.Mock).mockReturnValue({ isDirectory: () => false });
-        (fsPromises.writeFile as jest.Mock).mockResolvedValue(undefined);
+      const filePath = 'file.json';
+      const data = { key: 'value' };
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.lstatSync as jest.Mock).mockReturnValue({ isDirectory: () => false });
+      (fsPromises.writeFile as jest.Mock).mockResolvedValue(undefined);
 
-        await service.write(filePath, data as any); // Cast to any to test non-string data
-        expect(fsPromises.writeFile).toHaveBeenCalledWith(`${testCloudDir}/${filePath}`, JSON.stringify(data), 'utf-8');
-      });
+      await service.write(filePath, data as any); // Cast to any to test non-string data
+      expect(fsPromises.writeFile).toHaveBeenCalledWith(
+        `${testCloudDir}/${filePath}`,
+        JSON.stringify(data),
+        'utf-8',
+      );
+    });
 
     it('should throw an error if path does not exist', async () => {
       (fs.existsSync as jest.Mock).mockReturnValue(false);
-      await expect(service.write('nonexistent.txt', 'data')).rejects.toThrow('Path not found');
+      await expect(service.write('nonexistent.txt', 'data')).rejects.toThrow(
+        'Path not found',
+      );
     });
 
     it('should throw an error if path is a directory', async () => {
       (fs.existsSync as jest.Mock).mockReturnValue(true);
       (fs.lstatSync as jest.Mock).mockReturnValue({ isDirectory: () => true });
-      await expect(service.write('directory/', 'data')).rejects.toThrow('Cannot write to a directory');
+      await expect(service.write('directory/', 'data')).rejects.toThrow(
+        'Cannot write to a directory',
+      );
     });
   });
 
@@ -194,12 +235,17 @@ describe('CloudService', () => {
 
       await service.delete(path);
       expect(fs.existsSync).toHaveBeenCalledWith(`${testCloudDir}/${path}`);
-      expect(fsPromises.rm).toHaveBeenCalledWith(`${testCloudDir}/${path}`, { recursive: true, force: true });
+      expect(fsPromises.rm).toHaveBeenCalledWith(`${testCloudDir}/${path}`, {
+        recursive: true,
+        force: true,
+      });
     });
 
     it('should throw an error if path does not exist', async () => {
       (fs.existsSync as jest.Mock).mockReturnValue(false);
-      await expect(service.delete('nonexistent')).rejects.toThrow('Path not found');
+      await expect(service.delete('nonexistent')).rejects.toThrow(
+        'Path not found',
+      );
     });
   });
 
@@ -210,13 +256,15 @@ describe('CloudService', () => {
       (fs.existsSync as jest.Mock).mockReturnValue(true); // For ensureExists
       (fsPromises.readdir as jest.Mock).mockResolvedValue(filesInDir);
       (fsPromises.lstat as jest.Mock)
-        .mockResolvedValueOnce({ // file1.txt
+        .mockResolvedValueOnce({
+          // file1.txt
           size: 100,
           isDirectory: () => false,
           birthtime: new Date(1),
           mtime: new Date(2),
         })
-        .mockResolvedValueOnce({ // subdir
+        .mockResolvedValueOnce({
+          // subdir
           size: 0,
           isDirectory: () => true,
           birthtime: new Date(3),
@@ -227,17 +275,37 @@ describe('CloudService', () => {
 
       expect(fs.existsSync).toHaveBeenCalledWith(`${testCloudDir}/${dir}`);
       expect(fsPromises.readdir).toHaveBeenCalledWith(`${testCloudDir}/${dir}`);
-      expect(fsPromises.lstat).toHaveBeenCalledWith(`${testCloudDir}/${dir}/file1.txt`);
-      expect(fsPromises.lstat).toHaveBeenCalledWith(`${testCloudDir}/${dir}/subdir`);
+      expect(fsPromises.lstat).toHaveBeenCalledWith(
+        `${testCloudDir}/${dir}/file1.txt`,
+      );
+      expect(fsPromises.lstat).toHaveBeenCalledWith(
+        `${testCloudDir}/${dir}/subdir`,
+      );
       expect(result).toEqual([
-        { path: `${dir}/file1.txt`, name: 'file1.txt', size: 100, isDirectory: false, created: 1, modified: 2 },
-        { path: `${dir}/subdir`, name: 'subdir', size: 0, isDirectory: true, created: 3, modified: 4 },
+        {
+          path: `${dir}/file1.txt`,
+          name: 'file1.txt',
+          size: 100,
+          isDirectory: false,
+          created: 1,
+          modified: 2,
+        },
+        {
+          path: `${dir}/subdir`,
+          name: 'subdir',
+          size: 0,
+          isDirectory: true,
+          created: 3,
+          modified: 4,
+        },
       ]);
     });
 
     it('should throw an error if directory does not exist', async () => {
       (fs.existsSync as jest.Mock).mockReturnValue(false);
-      await expect(service.list('nonexistent_dir')).rejects.toThrow('Path not found');
+      await expect(service.list('nonexistent_dir')).rejects.toThrow(
+        'Path not found',
+      );
     });
   });
 
@@ -269,9 +337,11 @@ describe('CloudService', () => {
     });
 
     it('should throw an error if path does not exist for stat', async () => {
-        (fs.existsSync as jest.Mock).mockReturnValue(false);
-        await expect(service.stat('nonexistent_item')).rejects.toThrow('Path not found');
-      });
+      (fs.existsSync as jest.Mock).mockReturnValue(false);
+      await expect(service.stat('nonexistent_item')).rejects.toThrow(
+        'Path not found',
+      );
+    });
   });
 
   // TODO: Add tests for find, findContent, readMany, writeMany, deleteMany, move, moveMany, copy, copyMany, rename, renameMany, download, upload, cleanup

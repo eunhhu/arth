@@ -5,13 +5,16 @@ module.exports = {
     "ts"
   ],
   rootDir: "src",
-  testMatch: [ // Changed from testRegex to testMatch for clarity
+  // tsconfig uses baseUrl="./" so modules like "src/lib/util" are absolute
+  // from the project root. Teach Jest the same by resolving from "<rootDir>/..".
+  modulePaths: ["<rootDir>/.."],
+  testMatch: [
     "**/*.spec.ts"
   ],
   transform: {
     "^.+\\.(t|j)s$": "ts-jest"
   },
-  collectCoverage: true, // Added collectCoverage
+  collectCoverage: true,
   collectCoverageFrom: [
     "**/*.(t|j)s"
   ],

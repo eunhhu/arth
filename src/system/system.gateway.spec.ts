@@ -39,21 +39,25 @@ const mockLogger = {
 describe('SystemGateway', () => {
   let gateway: SystemGateway;
   let service: SystemService;
-  // let server: Server; // will be assigned mockServer
+  // The gateway instantiates Logger itself (not via DI), so we spy on the
+  // prototype rather than provide a replacement.
+  let loggerLogSpy: jest.SpyInstance;
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    jest.useFakeTimers(); // Use fake timers for interval testing
+    jest.useFakeTimers();
+
+    loggerLogSpy = jest
+      .spyOn(Logger.prototype, 'log')
+      .mockImplementation(mockLogger.log);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SystemGateway,
         { provide: SystemService, useValue: mockSystemService },
-        { provide: Logger, useValue: mockLogger }, // Provide the mock logger
       ],
     }).compile();
 
-    // We need to get SystemService instance to set its mock return values before gateway constructor runs fully
     service = module.get<SystemService>(SystemService);
   });
 
@@ -63,25 +67,24 @@ describe('SystemGateway', () => {
     if ((gateway as any).interval) {
       clearInterval((gateway as any).interval);
     }
-    jest.clearAllTimers(); // Clear all fake timers
-    jest.useRealTimers(); // Restore real timers
+    jest.clearAllTimers();
+    jest.useRealTimers();
+    loggerLogSpy.mockRestore();
   });
 
   const initializeGateway = async () => {
     // Re-compile or get from module to ensure constructor logic is hit with current mock setups
     // This is tricky because constructor logic runs once. We'll test constructor separately.
     // For other tests, we assume gateway is constructed and then assign server.
-     const moduleRef = await Test.createTestingModule({
-        providers: [
-            SystemGateway,
-            { provide: SystemService, useValue: mockSystemService },
-            { provide: Logger, useValue: mockLogger },
-        ],
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        SystemGateway,
+        { provide: SystemService, useValue: mockSystemService },
+      ],
     }).compile();
     gateway = moduleRef.get<SystemGateway>(SystemGateway);
     gateway.server = mockServer as any as Server;
   };
-
 
   describe('Constructor Logic and Interval', () => {
     it('should initialize logger and set up interval if systemService.isValid is true', async () => {
@@ -98,9 +101,12 @@ describe('SystemGateway', () => {
       expect(mockSystemService.isValid).toHaveBeenCalled();
       expect((gateway as any).interval).toBeDefined();
 
-      // Fast-forward time to trigger the interval
+      // Fast-forward time to trigger the interval and flush the interval
+      // callback's chain of awaits (getCPU → getMemory → getBattery → getStorage).
       jest.advanceTimersByTime(500);
-      await Promise.resolve(); // Allow promises in interval to resolve
+      for (let i = 0; i < 10; i++) {
+        await Promise.resolve();
+      }
 
       expect(mockSystemService.getCPU).toHaveBeenCalled();
       expect(mockSystemService.getMemory).toHaveBeenCalled();
@@ -133,43 +139,65 @@ describe('SystemGateway', () => {
 
   describe('Lifecycle Hooks', () => {
     beforeEach(async () => {
-        mockSystemService.isValid.mockReturnValue(false); // Prevent interval by default for these
-        await initializeGateway();
+      mockSystemService.isValid.mockReturnValue(false); // Prevent interval by default for these
+      await initializeGateway();
     });
 
     it('handleConnection should execute without error', () => {
-      expect(() => gateway.handleConnection(mockClientSocket as any as Socket)).not.toThrow();
+      expect(() =>
+        gateway.handleConnection(mockClientSocket as any as Socket),
+      ).not.toThrow();
     });
 
     it('handleDisconnect should execute without error', () => {
-      expect(() => gateway.handleDisconnect(mockClientSocket as any as Socket)).not.toThrow();
+      expect(() =>
+        gateway.handleDisconnect(mockClientSocket as any as Socket),
+      ).not.toThrow();
     });
   });
 
-  describe_('SubscribeMessage("message") - handleMessage', () => {
+  describe('SubscribeMessage("message") - handleMessage', () => {
     beforeEach(async () => {
-        mockSystemService.isValid.mockReturnValue(false); // Prevent interval by default
-        await initializeGateway();
+      mockSystemService.isValid.mockReturnValue(false); // Prevent interval by default
+      await initializeGateway();
     });
 
     it('should emit the message back to the sender and broadcast to others', () => {
       const messageArgs = ['test message', { data: 123 }];
       gateway.handleMessage(mockClientSocket as any as Socket, ...messageArgs);
 
-      expect(mockClientSocket.emit).toHaveBeenCalledWith('message', ...messageArgs);
-      expect(mockClientSocket.broadcast.emit).toHaveBeenCalledWith('message', ...messageArgs);
+      expect(mockClientSocket.emit).toHaveBeenCalledWith(
+        'message',
+        ...messageArgs,
+      );
+      expect(mockClientSocket.broadcast.emit).toHaveBeenCalledWith(
+        'message',
+        ...messageArgs,
+      );
     });
 
     it('should handle different message arguments', () => {
       const messageArgs1 = ['hello'];
       gateway.handleMessage(mockClientSocket as any as Socket, ...messageArgs1);
-      expect(mockClientSocket.emit).toHaveBeenCalledWith('message', ...messageArgs1);
-      expect(mockClientSocket.broadcast.emit).toHaveBeenCalledWith('message', ...messageArgs1);
+      expect(mockClientSocket.emit).toHaveBeenCalledWith(
+        'message',
+        ...messageArgs1,
+      );
+      expect(mockClientSocket.broadcast.emit).toHaveBeenCalledWith(
+        'message',
+        ...messageArgs1,
+      );
 
       const messageArgs2 = [{ complex: { object: true } }, 42];
       gateway.handleMessage(mockClientSocket as any as Socket, ...messageArgs2);
-      expect(mockClientSocket.emit).toHaveBeenCalledWith('message', ...messageArgs2);
-      expect(mockClientSocket.broadcast.emit).toHaveBeenCalledWith('message', ...messageArgs2);
+      expect(mockClientSocket.emit).toHaveBeenCalledWith(
+        'message',
+        ...messageArgs2,
+      );
+      expect(mockClientSocket.broadcast.emit).toHaveBeenCalledWith(
+        'message',
+        ...messageArgs2,
+      );
     });
   });
 });
