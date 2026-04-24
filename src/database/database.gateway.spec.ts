@@ -37,7 +37,9 @@ describe('DatabaseGateway', () => {
   describe('handleConnection', () => {
     it('should handle a new client connection', () => {
       // Method is currently empty
-      expect(() => gateway.handleConnection(mockSocket as any as Socket)).not.toThrow();
+      expect(() =>
+        gateway.handleConnection(mockSocket as any as Socket),
+      ).not.toThrow();
       // Example: if it logged: expect(console.log).toHaveBeenCalledWith(`Client connected: ${mockSocket.id}`);
     });
   });
@@ -45,12 +47,14 @@ describe('DatabaseGateway', () => {
   describe('handleDisconnect', () => {
     it('should handle a client disconnection', () => {
       // Method is currently empty
-      expect(() => gateway.handleDisconnect(mockSocket as any as Socket)).not.toThrow();
+      expect(() =>
+        gateway.handleDisconnect(mockSocket as any as Socket),
+      ).not.toThrow();
       // Example: if it logged: expect(console.log).toHaveBeenCalledWith(`Client disconnected: ${mockSocket.id}`);
     });
   });
 
-  describe_('SubscribeMessage("route")', () => {
+  describe('SubscribeMessage("route")', () => {
     it('should make the client join the specified room (collection)', () => {
       const collectionName = 'usersCollection';
       gateway.route(mockSocket as any as Socket, collectionName);

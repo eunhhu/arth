@@ -20,7 +20,7 @@ import { AppGateway } from './app.gateway';
     }),
     ConfigModule.forRoot({
       isGlobal: true,
-    })
+    }),
   ],
   controllers: [AppController],
   providers: [AppService, AppGateway],

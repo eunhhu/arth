@@ -48,7 +48,8 @@ describe('SystemController', () => {
 
     it('should return a rejected promise if systemService.getOSInfo throws', async () => {
       const errorMessage = 'OS info error';
-      mockSystemService.getOSInfo.mockImplementation(() => { // Use mockImplementation for direct throw or promise reject
+      mockSystemService.getOSInfo.mockImplementation(() => {
+        // Use mockImplementation for direct throw or promise reject
         throw new Error(errorMessage);
       });
 
@@ -90,7 +91,9 @@ describe('SystemController', () => {
       const errorMessage = 'Memory info error';
       mockSystemService.getMemory.mockRejectedValue(new Error(errorMessage));
 
-      await expect(controller.memory()).rejects.toEqual({ error: errorMessage });
+      await expect(controller.memory()).rejects.toEqual({
+        error: errorMessage,
+      });
       expect(mockSystemService.getMemory).toHaveBeenCalled();
     });
   });
@@ -109,7 +112,9 @@ describe('SystemController', () => {
       const errorMessage = 'Battery info error';
       mockSystemService.getBattery.mockRejectedValue(new Error(errorMessage));
 
-      await expect(controller.battery()).rejects.toEqual({ error: errorMessage });
+      await expect(controller.battery()).rejects.toEqual({
+        error: errorMessage,
+      });
       expect(mockSystemService.getBattery).toHaveBeenCalled();
     });
   });
@@ -128,7 +133,9 @@ describe('SystemController', () => {
       const errorMessage = 'Storage info error';
       mockSystemService.getStorage.mockRejectedValue(new Error(errorMessage));
 
-      await expect(controller.storage()).rejects.toEqual({ error: errorMessage });
+      await expect(controller.storage()).rejects.toEqual({
+        error: errorMessage,
+      });
       expect(mockSystemService.getStorage).toHaveBeenCalled();
     });
   });

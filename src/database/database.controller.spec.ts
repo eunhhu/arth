@@ -71,17 +71,44 @@ describe('DatabaseController', () => {
       mockDatabaseService.getCollections.mockImplementation(() => {
         throw new Error(errorMessage);
       });
-      expect(() => controller.getCollections(db)).toThrow(new BadRequestException(errorMessage));
+      expect(() => controller.getCollections(db)).toThrow(
+        new BadRequestException(errorMessage),
+      );
     });
   });
 
   describe('getDocuments', () => {
-    const params = { db: 'testDb', collection: 'testCol', limit: 10, skip: 0, sortField: 'name', sortOrder: 'asc' as 'asc' | 'desc' };
+    const params = {
+      db: 'testDb',
+      collection: 'testCol',
+      limit: 10,
+      skip: 0,
+      sortField: 'name',
+      sortOrder: 'asc' as 'asc' | 'desc',
+    };
     it('should call service.getDocuments and return the result', () => {
       const expectedResult = [{ id: '1', name: 'doc1' }];
       mockDatabaseService.getDocuments.mockReturnValue(expectedResult);
-      expect(controller.getDocuments(params.db, params.collection, params.limit, params.skip, params.sortField, params.sortOrder)).toEqual(expectedResult);
-      expect(mockDatabaseService.getDocuments).toHaveBeenCalledWith(params.db, params.collection, { limit: params.limit, skip: params.skip, sortField: params.sortField, sortOrder: params.sortOrder });
+      expect(
+        controller.getDocuments(
+          params.db,
+          params.collection,
+          params.limit,
+          params.skip,
+          params.sortField,
+          params.sortOrder,
+        ),
+      ).toEqual(expectedResult);
+      expect(mockDatabaseService.getDocuments).toHaveBeenCalledWith(
+        params.db,
+        params.collection,
+        {
+          limit: params.limit,
+          skip: params.skip,
+          sortField: params.sortField,
+          sortOrder: params.sortOrder,
+        },
+      );
     });
 
     it('should throw BadRequestException if service throws', () => {
@@ -89,7 +116,9 @@ describe('DatabaseController', () => {
       mockDatabaseService.getDocuments.mockImplementation(() => {
         throw new Error(errorMessage);
       });
-      expect(() => controller.getDocuments(params.db, params.collection)).toThrow(new BadRequestException(errorMessage));
+      expect(() =>
+        controller.getDocuments(params.db, params.collection),
+      ).toThrow(new BadRequestException(errorMessage));
     });
   });
 
@@ -98,14 +127,23 @@ describe('DatabaseController', () => {
     it('should call service.getDocument and return the result', () => {
       const expectedResult = { id: 'docId', data: 'some data' };
       mockDatabaseService.getDocument.mockReturnValue(expectedResult);
-      expect(controller.getDocument(params.db, params.collection, params.id)).toEqual(expectedResult);
-      expect(mockDatabaseService.getDocument).toHaveBeenCalledWith(params.db, params.collection, params.id);
+      expect(
+        controller.getDocument(params.db, params.collection, params.id),
+      ).toEqual(expectedResult);
+      expect(mockDatabaseService.getDocument).toHaveBeenCalledWith(
+        params.db,
+        params.collection,
+        params.id,
+      );
     });
     it('should throw BadRequestException if service throws', () => {
       const errorMessage = 'Not found';
-      mockDatabaseService.getDocument.mockImplementation(() => { throw new Error(errorMessage); });
-      expect(() => controller.getDocument(params.db, params.collection, params.id))
-        .toThrow(new BadRequestException(errorMessage));
+      mockDatabaseService.getDocument.mockImplementation(() => {
+        throw new Error(errorMessage);
+      });
+      expect(() =>
+        controller.getDocument(params.db, params.collection, params.id),
+      ).toThrow(new BadRequestException(errorMessage));
     });
   });
 
@@ -114,13 +152,18 @@ describe('DatabaseController', () => {
     it('should call service.createDatabase', () => {
       mockDatabaseService.createDatabase.mockReturnValue(undefined); // Assuming void or success message
       controller.createDatabase(body.name);
-      expect(mockDatabaseService.createDatabase).toHaveBeenCalledWith(body.name);
+      expect(mockDatabaseService.createDatabase).toHaveBeenCalledWith(
+        body.name,
+      );
     });
     it('should throw BadRequestException if service throws', () => {
       const errorMessage = 'DB already exists';
-      mockDatabaseService.createDatabase.mockImplementation(() => { throw new Error(errorMessage); });
-      expect(() => controller.createDatabase(body.name))
-        .toThrow(new BadRequestException(errorMessage));
+      mockDatabaseService.createDatabase.mockImplementation(() => {
+        throw new Error(errorMessage);
+      });
+      expect(() => controller.createDatabase(body.name)).toThrow(
+        new BadRequestException(errorMessage),
+      );
     });
   });
 
@@ -129,63 +172,113 @@ describe('DatabaseController', () => {
     it('should call service.createCollection', () => {
       mockDatabaseService.createCollection.mockReturnValue(undefined);
       controller.createCollection(body.db, body.name);
-      expect(mockDatabaseService.createCollection).toHaveBeenCalledWith(body.db, body.name);
+      expect(mockDatabaseService.createCollection).toHaveBeenCalledWith(
+        body.db,
+        body.name,
+      );
     });
     it('should throw BadRequestException if service throws', () => {
       const errorMessage = 'Collection already exists';
-      mockDatabaseService.createCollection.mockImplementation(() => { throw new Error(errorMessage); });
-      expect(() => controller.createCollection(body.db, body.name))
-        .toThrow(new BadRequestException(errorMessage));
+      mockDatabaseService.createCollection.mockImplementation(() => {
+        throw new Error(errorMessage);
+      });
+      expect(() => controller.createCollection(body.db, body.name)).toThrow(
+        new BadRequestException(errorMessage),
+      );
     });
   });
 
   describe('createDocument', () => {
-    const body = { db: 'testDb', col: 'testCol', data: { field: 'value' }, id: 'newDoc' };
+    const body = {
+      db: 'testDb',
+      col: 'testCol',
+      data: { field: 'value' },
+      id: 'newDoc',
+    };
     it('should call service.createDocument', () => {
       mockDatabaseService.createDocument.mockReturnValue(undefined);
       controller.createDocument(body.db, body.col, body.data, body.id);
-      expect(mockDatabaseService.createDocument).toHaveBeenCalledWith(body.db, body.col, body.data, body.id);
+      expect(mockDatabaseService.createDocument).toHaveBeenCalledWith(
+        body.db,
+        body.col,
+        body.data,
+        body.id,
+      );
     });
     it('should call service.createDocument without id if not provided', () => {
-        mockDatabaseService.createDocument.mockReturnValue(undefined);
-        controller.createDocument(body.db, body.col, body.data);
-        expect(mockDatabaseService.createDocument).toHaveBeenCalledWith(body.db, body.col, body.data, undefined);
-      });
+      mockDatabaseService.createDocument.mockReturnValue(undefined);
+      controller.createDocument(body.db, body.col, body.data);
+      expect(mockDatabaseService.createDocument).toHaveBeenCalledWith(
+        body.db,
+        body.col,
+        body.data,
+        undefined,
+      );
+    });
     it('should throw BadRequestException if service throws', () => {
       const errorMessage = 'Document already exists';
-      mockDatabaseService.createDocument.mockImplementation(() => { throw new Error(errorMessage); });
-      expect(() => controller.createDocument(body.db, body.col, body.data, body.id))
-        .toThrow(new BadRequestException(errorMessage));
+      mockDatabaseService.createDocument.mockImplementation(() => {
+        throw new Error(errorMessage);
+      });
+      expect(() =>
+        controller.createDocument(body.db, body.col, body.data, body.id),
+      ).toThrow(new BadRequestException(errorMessage));
     });
   });
 
   describe('appendDocument', () => {
-    const body = { db: 'testDb', col: 'testCol', id: 'doc1', data: { newField: 'newValue' } };
+    const body = {
+      db: 'testDb',
+      col: 'testCol',
+      id: 'doc1',
+      data: { newField: 'newValue' },
+    };
     it('should call service.appendDocument', () => {
       mockDatabaseService.appendDocument.mockReturnValue(undefined);
       controller.appendDocument(body.db, body.col, body.id, body.data);
-      expect(mockDatabaseService.appendDocument).toHaveBeenCalledWith(body.db, body.col, body.id, body.data);
+      expect(mockDatabaseService.appendDocument).toHaveBeenCalledWith(
+        body.db,
+        body.col,
+        body.id,
+        body.data,
+      );
     });
     it('should throw BadRequestException if service throws', () => {
       const errorMessage = 'Document not found for append';
-      mockDatabaseService.appendDocument.mockImplementation(() => { throw new Error(errorMessage); });
-      expect(() => controller.appendDocument(body.db, body.col, body.id, body.data))
-        .toThrow(new BadRequestException(errorMessage));
+      mockDatabaseService.appendDocument.mockImplementation(() => {
+        throw new Error(errorMessage);
+      });
+      expect(() =>
+        controller.appendDocument(body.db, body.col, body.id, body.data),
+      ).toThrow(new BadRequestException(errorMessage));
     });
   });
 
   describe('updateDocument', () => {
-    const body = { db: 'testDb', col: 'testCol', id: 'doc1', data: { field: 'updatedValue' } };
+    const body = {
+      db: 'testDb',
+      col: 'testCol',
+      id: 'doc1',
+      data: { field: 'updatedValue' },
+    };
     it('should call service.updateDocument', () => {
       mockDatabaseService.updateDocument.mockReturnValue(undefined);
       controller.updateDocument(body.db, body.col, body.id, body.data);
-      expect(mockDatabaseService.updateDocument).toHaveBeenCalledWith(body.db, body.col, body.id, body.data);
+      expect(mockDatabaseService.updateDocument).toHaveBeenCalledWith(
+        body.db,
+        body.col,
+        body.id,
+        body.data,
+      );
     });
     it('should throw BadRequestException if service throws', () => {
       const errorMessage = 'Document not found for update';
-      mockDatabaseService.updateDocument.mockImplementation(() => { throw new Error(errorMessage); });
-      expect(() => controller.updateDocument(body.db, body.col, body.id, body.data))
-        .toThrow(new BadRequestException(errorMessage));
+      mockDatabaseService.updateDocument.mockImplementation(() => {
+        throw new Error(errorMessage);
+      });
+      expect(() =>
+        controller.updateDocument(body.db, body.col, body.id, body.data),
+      ).toThrow(new BadRequestException(errorMessage));
     });
   });
 
@@ -194,13 +287,18 @@ describe('DatabaseController', () => {
     it('should call service.deleteDatabase', () => {
       mockDatabaseService.deleteDatabase.mockReturnValue(undefined);
       controller.deleteDatabase(query.name);
-      expect(mockDatabaseService.deleteDatabase).toHaveBeenCalledWith(query.name);
+      expect(mockDatabaseService.deleteDatabase).toHaveBeenCalledWith(
+        query.name,
+      );
     });
     it('should throw BadRequestException if service throws', () => {
       const errorMessage = 'Database not found for deletion';
-      mockDatabaseService.deleteDatabase.mockImplementation(() => { throw new Error(errorMessage); });
-      expect(() => controller.deleteDatabase(query.name))
-        .toThrow(new BadRequestException(errorMessage));
+      mockDatabaseService.deleteDatabase.mockImplementation(() => {
+        throw new Error(errorMessage);
+      });
+      expect(() => controller.deleteDatabase(query.name)).toThrow(
+        new BadRequestException(errorMessage),
+      );
     });
   });
 
@@ -209,13 +307,19 @@ describe('DatabaseController', () => {
     it('should call service.deleteCollection', () => {
       mockDatabaseService.deleteCollection.mockReturnValue(undefined);
       controller.deleteCollection(query.db, query.name);
-      expect(mockDatabaseService.deleteCollection).toHaveBeenCalledWith(query.db, query.name);
+      expect(mockDatabaseService.deleteCollection).toHaveBeenCalledWith(
+        query.db,
+        query.name,
+      );
     });
     it('should throw BadRequestException if service throws', () => {
       const errorMessage = 'Collection not found for deletion';
-      mockDatabaseService.deleteCollection.mockImplementation(() => { throw new Error(errorMessage); });
-      expect(() => controller.deleteCollection(query.db, query.name))
-        .toThrow(new BadRequestException(errorMessage));
+      mockDatabaseService.deleteCollection.mockImplementation(() => {
+        throw new Error(errorMessage);
+      });
+      expect(() => controller.deleteCollection(query.db, query.name)).toThrow(
+        new BadRequestException(errorMessage),
+      );
     });
   });
 
@@ -224,13 +328,20 @@ describe('DatabaseController', () => {
     it('should call service.deleteDocument', () => {
       mockDatabaseService.deleteDocument.mockReturnValue(undefined);
       controller.deleteDocument(query.db, query.col, query.id);
-      expect(mockDatabaseService.deleteDocument).toHaveBeenCalledWith(query.db, query.col, query.id);
+      expect(mockDatabaseService.deleteDocument).toHaveBeenCalledWith(
+        query.db,
+        query.col,
+        query.id,
+      );
     });
     it('should throw BadRequestException if service throws', () => {
       const errorMessage = 'Document not found for deletion';
-      mockDatabaseService.deleteDocument.mockImplementation(() => { throw new Error(errorMessage); });
-      expect(() => controller.deleteDocument(query.db, query.col, query.id))
-        .toThrow(new BadRequestException(errorMessage));
+      mockDatabaseService.deleteDocument.mockImplementation(() => {
+        throw new Error(errorMessage);
+      });
+      expect(() =>
+        controller.deleteDocument(query.db, query.col, query.id),
+      ).toThrow(new BadRequestException(errorMessage));
     });
   });
 

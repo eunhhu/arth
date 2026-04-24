@@ -37,10 +37,9 @@ const mockCloudGateway = {
 };
 
 jest.mock('src/lib/util', () => ({
-    ...jest.requireActual('src/lib/util'), // retain other functions from the module
-    splitPath: jest.fn((path: string) => path.split(/[/\\]+/).filter(p => p)), // Basic mock for splitPath
+  ...jest.requireActual('src/lib/util'), // retain other functions from the module
+  splitPath: jest.fn((path: string) => path.split(/[/\\]+/).filter((p) => p)), // Basic mock for splitPath
 }));
-
 
 describe('CloudController', () => {
   let controller: CloudController;
@@ -66,7 +65,16 @@ describe('CloudController', () => {
   describe('list', () => {
     it('should call cloudService.list and return its result', async () => {
       const mockPath = 'some/path';
-      const mockResult: FileInfo[] = [{ name: 'file1.txt', path: 'some/path/file1.txt', size: 100, isDirectory: false, created: Date.now(), modified: Date.now() }];
+      const mockResult: FileInfo[] = [
+        {
+          name: 'file1.txt',
+          path: 'some/path/file1.txt',
+          size: 100,
+          isDirectory: false,
+          created: Date.now(),
+          modified: Date.now(),
+        },
+      ];
       mockCloudService.list.mockResolvedValue(mockResult);
 
       const result = await controller.list(mockPath);
@@ -79,7 +87,9 @@ describe('CloudController', () => {
       const errorMessage = 'Service error';
       mockCloudService.list.mockRejectedValue(new Error(errorMessage));
 
-      await expect(controller.list(mockPath)).rejects.toEqual({ error: errorMessage });
+      await expect(controller.list(mockPath)).rejects.toEqual({
+        error: errorMessage,
+      });
       expect(mockCloudService.list).toHaveBeenCalledWith(mockPath);
     });
   });
@@ -87,7 +97,14 @@ describe('CloudController', () => {
   describe('stat', () => {
     it('should call cloudService.stat and return its result', async () => {
       const mockPath = 'some/file.txt';
-      const mockResult: FileInfo = { name: 'file.txt', path: 'some/file.txt', size: 120, isDirectory: false, created: Date.now(), modified: Date.now() };
+      const mockResult: FileInfo = {
+        name: 'file.txt',
+        path: 'some/file.txt',
+        size: 120,
+        isDirectory: false,
+        created: Date.now(),
+        modified: Date.now(),
+      };
       mockCloudService.stat.mockResolvedValue(mockResult);
 
       const result = await controller.stat(mockPath);
@@ -96,11 +113,13 @@ describe('CloudController', () => {
     });
 
     it('should return a rejected promise if cloudService.stat throws', async () => {
-        const mockPath = 'some/file.txt';
-        const errorMessage = 'Stat error';
-        mockCloudService.stat.mockRejectedValue(new Error(errorMessage));
+      const mockPath = 'some/file.txt';
+      const errorMessage = 'Stat error';
+      mockCloudService.stat.mockRejectedValue(new Error(errorMessage));
 
-        await expect(controller.stat(mockPath)).rejects.toEqual({error: errorMessage});
+      await expect(controller.stat(mockPath)).rejects.toEqual({
+        error: errorMessage,
+      });
     });
   });
 
@@ -116,14 +135,18 @@ describe('CloudController', () => {
     });
 
     it('should reject if path is "/"', async () => {
-      await expect(controller.write('/', mockData)).rejects.toEqual({ error: 'Cannot write to root directory' });
+      await expect(controller.write('/', mockData)).rejects.toEqual({
+        error: 'Cannot write to root directory',
+      });
       expect(mockCloudService.write).not.toHaveBeenCalled();
     });
 
     it('should return a rejected promise if cloudService.write throws', async () => {
-        const errorMessage = 'Write error';
-        mockCloudService.write.mockRejectedValue(new Error(errorMessage));
-        await expect(controller.write(mockPath, mockData)).rejects.toEqual({error: errorMessage});
+      const errorMessage = 'Write error';
+      mockCloudService.write.mockRejectedValue(new Error(errorMessage));
+      await expect(controller.write(mockPath, mockData)).rejects.toEqual({
+        error: errorMessage,
+      });
     });
   });
 
@@ -136,19 +159,25 @@ describe('CloudController', () => {
       mockCloudService.createDir.mockResolvedValue(undefined);
       (splitPath as jest.Mock).mockReturnValue(fullPath.split('/'));
 
-
       const result = await controller.createDir(mockPath, mockName);
 
-      expect(mockCloudService.createDir).toHaveBeenCalledWith(mockPath, mockName);
-      expect(mockCloudGateway.fileCreated).toHaveBeenCalledWith(fullPath.split('/'));
+      expect(mockCloudService.createDir).toHaveBeenCalledWith(
+        mockPath,
+        mockName,
+      );
+      expect(mockCloudGateway.fileCreated).toHaveBeenCalledWith(
+        fullPath.split('/'),
+      );
       expect(result).toEqual({ message: 'Directory created successfully' });
     });
 
     it('should return a rejected promise if cloudService.createDir throws', async () => {
-        const errorMessage = 'CreateDir error';
-        mockCloudService.createDir.mockRejectedValue(new Error(errorMessage));
-        await expect(controller.createDir(mockPath, mockName)).rejects.toEqual({error: errorMessage});
-        expect(mockCloudGateway.fileCreated).not.toHaveBeenCalled();
+      const errorMessage = 'CreateDir error';
+      mockCloudService.createDir.mockRejectedValue(new Error(errorMessage));
+      await expect(controller.createDir(mockPath, mockName)).rejects.toEqual({
+        error: errorMessage,
+      });
+      expect(mockCloudGateway.fileCreated).not.toHaveBeenCalled();
     });
   });
 
@@ -160,24 +189,31 @@ describe('CloudController', () => {
       const mockPathParts = mockPath.split('/');
       (splitPath as jest.Mock).mockImplementation((p) => p.split('/'));
 
-
       const result = await controller.delete(mockPath);
 
       expect(mockCloudService.delete).toHaveBeenCalledWith(mockPath);
-      expect(mockCloudGateway.folderRemoved).toHaveBeenCalledWith(mockPathParts);
-      expect(mockCloudGateway.routeUpdated).toHaveBeenCalledWith(mockPathParts.slice(0, -1));
+      expect(mockCloudGateway.folderRemoved).toHaveBeenCalledWith(
+        mockPathParts,
+      );
+      expect(mockCloudGateway.routeUpdated).toHaveBeenCalledWith(
+        mockPathParts.slice(0, -1),
+      );
       expect(result).toEqual({ message: 'File deleted successfully' });
     });
 
     it('should reject if path is "/"', async () => {
-        await expect(controller.delete('/')).rejects.toEqual({ error: 'Cannot delete root directory' });
-        expect(mockCloudService.delete).not.toHaveBeenCalled();
+      await expect(controller.delete('/')).rejects.toEqual({
+        error: 'Cannot delete root directory',
       });
+      expect(mockCloudService.delete).not.toHaveBeenCalled();
+    });
 
     it('should return a rejected promise if cloudService.delete throws', async () => {
-        const errorMessage = 'Delete error';
-        mockCloudService.delete.mockRejectedValue(new Error(errorMessage));
-        await expect(controller.delete(mockPath)).rejects.toEqual({error: errorMessage});
+      const errorMessage = 'Delete error';
+      mockCloudService.delete.mockRejectedValue(new Error(errorMessage));
+      await expect(controller.delete(mockPath)).rejects.toEqual({
+        error: errorMessage,
+      });
     });
   });
 
@@ -186,11 +222,11 @@ describe('CloudController', () => {
     let mockReply: Partial<FastifyReply>;
 
     beforeEach(() => {
-        mockReply = {
-            status: jest.fn().mockReturnThis(),
-            send: jest.fn().mockReturnThis(),
-            // header: jest.fn().mockReturnThis(), // Add if controller sets headers directly
-        };
+      mockReply = {
+        status: jest.fn().mockReturnThis(),
+        send: jest.fn().mockReturnThis(),
+        // header: jest.fn().mockReturnThis(), // Add if controller sets headers directly
+      };
     });
 
     it('should call cloudService.download', async () => {
@@ -199,18 +235,21 @@ describe('CloudController', () => {
       });
 
       await controller.download(mockReply as FastifyReply, mockPath);
-      expect(mockCloudService.download).toHaveBeenCalledWith(mockPath, mockReply);
+      expect(mockCloudService.download).toHaveBeenCalledWith(
+        mockPath,
+        mockReply,
+      );
     });
 
     it('should send 404 if cloudService.download throws', async () => {
-        const errorMessage = 'Download service error';
-        mockCloudService.download.mockImplementation(() => {
-            throw new Error(errorMessage);
-        });
+      const errorMessage = 'Download service error';
+      mockCloudService.download.mockImplementation(() => {
+        throw new Error(errorMessage);
+      });
 
-        await controller.download(mockReply as FastifyReply, mockPath);
-        expect(mockReply.status).toHaveBeenCalledWith(404);
-        expect(mockReply.send).toHaveBeenCalledWith(errorMessage);
+      await controller.download(mockReply as FastifyReply, mockPath);
+      expect(mockReply.status).toHaveBeenCalledWith(404);
+      expect(mockReply.send).toHaveBeenCalledWith(errorMessage);
     });
   });
 
@@ -218,35 +257,50 @@ describe('CloudController', () => {
     const mockPath = 'target/upload/dir';
     let mockRequest: Partial<FastifyRequest>;
     const mockFilesIterator = {
-        [Symbol.asyncIterator]: jest.fn(() => ({
-            next: jest.fn()
-                .mockResolvedValueOnce({ value: { filename: 'file1.txt', file: { pipe: jest.fn(), on: jest.fn() }}, done: false })
-                .mockResolvedValueOnce({ done: true })
-        }))
+      [Symbol.asyncIterator]: jest.fn(() => ({
+        next: jest
+          .fn()
+          .mockResolvedValueOnce({
+            value: {
+              filename: 'file1.txt',
+              file: { pipe: jest.fn(), on: jest.fn() },
+            },
+            done: false,
+          })
+          .mockResolvedValueOnce({ done: true }),
+      })),
     };
 
     beforeEach(() => {
-        mockRequest = {
-            files: jest.fn().mockReturnValue(mockFilesIterator as any), // as any to satisfy AsyncIterableIterator<MultipartFile>
-            raw: {
-                on: jest.fn(),
-            } as any,
-        };
+      mockRequest = {
+        files: jest.fn().mockReturnValue(mockFilesIterator as any), // as any to satisfy AsyncIterableIterator<MultipartFile>
+        raw: {
+          on: jest.fn(),
+        } as any,
+      };
     });
 
     it('should call cloudService.upload and setup event listeners, then notify gateway', async () => {
-        const mockCancelFn = jest.fn();
-        mockCloudService.upload.mockResolvedValue(mockCancelFn);
-        (splitPath as jest.Mock).mockReturnValue(mockPath.split('/'));
+      const mockCancelFn = jest.fn();
+      mockCloudService.upload.mockResolvedValue(mockCancelFn);
+      (splitPath as jest.Mock).mockReturnValue(mockPath.split('/'));
 
-        const result = await controller.upload(mockPath, mockRequest as FastifyRequest);
+      const result = await controller.upload(
+        mockPath,
+        mockRequest as FastifyRequest,
+      );
 
-        expect(mockCloudService.upload).toHaveBeenCalledWith(mockPath, mockFilesIterator);
-        expect(mockRequest.raw.on).toHaveBeenCalledWith('aborted', mockCancelFn);
-        expect(mockRequest.raw.on).toHaveBeenCalledWith('close', mockCancelFn);
-        expect(mockRequest.raw.on).toHaveBeenCalledWith('error', mockCancelFn);
-        expect(mockCloudGateway.routeUpdated).toHaveBeenCalledWith(mockPath.split('/'));
-        expect(result).toEqual({ message: 'File uploaded successfully' });
+      expect(mockCloudService.upload).toHaveBeenCalledWith(
+        mockPath,
+        mockFilesIterator,
+      );
+      expect(mockRequest.raw.on).toHaveBeenCalledWith('aborted', mockCancelFn);
+      expect(mockRequest.raw.on).toHaveBeenCalledWith('close', mockCancelFn);
+      expect(mockRequest.raw.on).toHaveBeenCalledWith('error', mockCancelFn);
+      expect(mockCloudGateway.routeUpdated).toHaveBeenCalledWith(
+        mockPath.split('/'),
+      );
+      expect(result).toEqual({ message: 'File uploaded successfully' });
     });
   });
 

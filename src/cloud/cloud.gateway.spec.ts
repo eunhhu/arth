@@ -72,7 +72,7 @@ describe('CloudGateway', () => {
     });
   });
 
-  describe_('SubscribeMessage("route")', () => {
+  describe('SubscribeMessage("route")', () => {
     const pathArray = ['path', 'to', 'folder'];
     const pathString = 'path/to/folder';
 
@@ -82,7 +82,9 @@ describe('CloudGateway', () => {
 
       await gateway.route(mockClientSocket as any as Socket, pathArray);
 
-      expect((gateway as any).controls.get(mockClientSocket.id)).toEqual(pathArray);
+      expect((gateway as any).controls.get(mockClientSocket.id)).toEqual(
+        pathArray,
+      );
       expect(mockCloudService.list).toHaveBeenCalledWith('/' + pathString);
       expect(mockClientSocket.emit).toHaveBeenCalledWith('list', listResult);
     });
@@ -93,13 +95,17 @@ describe('CloudGateway', () => {
 
       await gateway.route(mockClientSocket as any as Socket, pathArray);
 
-      expect((gateway as any).controls.get(mockClientSocket.id)).toEqual(pathArray);
+      expect((gateway as any).controls.get(mockClientSocket.id)).toEqual(
+        pathArray,
+      );
       expect(mockCloudService.list).toHaveBeenCalledWith('/' + pathString);
-      expect(mockClientSocket.emit).toHaveBeenCalledWith('list', { error: errorMessage });
+      expect(mockClientSocket.emit).toHaveBeenCalledWith('list', {
+        error: errorMessage,
+      });
     });
   });
 
-  describe_('SubscribeMessage("stat")', () => {
+  describe('SubscribeMessage("stat")', () => {
     const filePath = 'path/to/file.txt';
 
     it('should call service.stat and emit "stat" to client on success', async () => {
@@ -119,15 +125,17 @@ describe('CloudGateway', () => {
       await gateway.stat(mockClientSocket as any as Socket, filePath);
 
       expect(mockCloudService.stat).toHaveBeenCalledWith(filePath);
-      expect(mockClientSocket.emit).toHaveBeenCalledWith('stat', { error: errorMessage });
+      expect(mockClientSocket.emit).toHaveBeenCalledWith('stat', {
+        error: errorMessage,
+      });
     });
   });
 
   describe('folderRemoved', () => {
     it('should emit "folderRemoved" to clients watching the removed path or its parent', () => {
       const pathClient1 = ['a', 'b', 'c']; // Watching a/b/c
-      const pathClient2 = ['a', 'b'];    // Watching a/b (parent of removed a/b/d)
-      const pathClient3 = ['x', 'y'];    // Watching x/y (unrelated)
+      const pathClient2 = ['a', 'b']; // Watching a/b (parent of removed a/b/d)
+      const pathClient3 = ['x', 'y']; // Watching x/y (unrelated)
       (gateway as any).controls.set(mockClientSocket.id, pathClient1);
       (gateway as any).controls.set(mockClientSocket2.id, pathClient2);
       (gateway as any).controls.set('otherClient', pathClient3);
@@ -135,26 +143,16 @@ describe('CloudGateway', () => {
       const removedPath = ['a', 'b', 'd']; // Folder a/b/d is removed
       gateway.folderRemoved(removedPath);
 
-      expect(mockServer.to).toHaveBeenCalledWith(mockClientSocket.id); // Client1 watching a/b/c, parent of a/b/d is a/b. Path a/b/c does not start with a/b/d. But a/b/c's parent (a/b) is parent of a/b/d
-      // The logic is: (valuePath.startsWith(removedPath) || valuePath === path.slice(0, -1).join('/'))
-      // For client1 (a/b/c):
-      //   'a/b/c'.startsWith('a/b/d') -> false
-      //   'a/b/c' === 'a/b' (parent of removedPath) -> false. This client should NOT be notified.
-      // For client2 (a/b):
-      //   'a/b'.startsWith('a/b/d') -> false
-      //   'a/b' === 'a/b' (parent of removedPath) -> true. This client SHOULD be notified.
-
-      // Let's re-evaluate based on the code:
-      // path.slice(0,-1) for removedPath ['a','b','d'] is ['a','b']
-      // Client1 (value = ['a','b','c'], valuePath = 'a/b/c'):
-      //   valuePath.startsWith('a/b/d') -> false
-      //   valuePath === 'a/b' -> false.  NO emit for client1.
-      // Client2 (value = ['a','b'], valuePath = 'a/b'):
-      //   valuePath.startsWith('a/b/d') -> false
-      //   valuePath === 'a/b' -> true. EMIT for client2.
-
+      // Gateway logic:
+      //   valuePath.startsWith(removedPath) || valuePath === path.slice(0,-1)
+      // For client1 ('a/b/c'): both false → NOT notified.
+      // For client2 ('a/b'):   second is true → notified.
+      // For client3 ('x/y'):   both false → NOT notified.
       expect(mockServer.to).toHaveBeenCalledWith(mockClientSocket2.id);
-      expect(mockServerEmitter.emit).toHaveBeenCalledWith('folderRemoved', ['a', 'b']); // Emits parent of removed path
+      expect(mockServerEmitter.emit).toHaveBeenCalledWith('folderRemoved', [
+        'a',
+        'b',
+      ]); // Emits parent of removed path
       expect(mockServer.to).not.toHaveBeenCalledWith(mockClientSocket.id); // Corrected expectation
       expect(mockServer.to).not.toHaveBeenCalledWith('otherClient');
       expect(mockServerEmitter.emit).toHaveBeenCalledTimes(1); // Only client2
@@ -169,14 +167,17 @@ describe('CloudGateway', () => {
       mockCloudService.stat.mockResolvedValue(fileStat);
 
       (gateway as any).controls.set(mockClientSocket.id, parentPath); // Client watching parent
-      (gateway as any).controls.set(mockClientSocket2.id, ['a']);    // Client watching grandparent (should not be notified)
-      (gateway as any).controls.set('otherClient', ['x','y']); // Unrelated
+      (gateway as any).controls.set(mockClientSocket2.id, ['a']); // Client watching grandparent (should not be notified)
+      (gateway as any).controls.set('otherClient', ['x', 'y']); // Unrelated
 
       await gateway.fileCreated(createdFilePathArray);
 
       expect(mockCloudService.stat).toHaveBeenCalledWith('a/b/newfile.txt');
       expect(mockServer.to).toHaveBeenCalledWith(mockClientSocket.id);
-      expect(mockServerEmitter.emit).toHaveBeenCalledWith('fileCreated', fileStat);
+      expect(mockServerEmitter.emit).toHaveBeenCalledWith(
+        'fileCreated',
+        fileStat,
+      );
       expect(mockServer.to).not.toHaveBeenCalledWith(mockClientSocket2.id);
       expect(mockServer.to).not.toHaveBeenCalledWith('otherClient');
       expect(mockServerEmitter.emit).toHaveBeenCalledTimes(1);
@@ -185,23 +186,22 @@ describe('CloudGateway', () => {
 
   describe('routeUpdated', () => {
     it('should call service.list and emit "list" to clients watching the exact path', async () => {
-        const updatedPathArray = ['a', 'b'];
-        const listResult = [{ name: 'file1.txt' }];
-        mockCloudService.list.mockResolvedValue(listResult);
+      const updatedPathArray = ['a', 'b'];
+      const listResult = [{ name: 'file1.txt' }];
+      mockCloudService.list.mockResolvedValue(listResult);
 
-        (gateway as any).controls.set(mockClientSocket.id, updatedPathArray); // Client watching the updated path
-        (gateway as any).controls.set(mockClientSocket2.id, ['a']);        // Client watching a parent (should not be notified)
-        (gateway as any).controls.set('otherClient', ['a','b','c']);     // Client watching a sub-path (should not be notified)
+      (gateway as any).controls.set(mockClientSocket.id, updatedPathArray); // Client watching the updated path
+      (gateway as any).controls.set(mockClientSocket2.id, ['a']); // Client watching a parent (should not be notified)
+      (gateway as any).controls.set('otherClient', ['a', 'b', 'c']); // Client watching a sub-path (should not be notified)
 
+      await gateway.routeUpdated(updatedPathArray);
 
-        await gateway.routeUpdated(updatedPathArray);
-
-        expect(mockCloudService.list).toHaveBeenCalledWith('/a/b');
-        expect(mockServer.to).toHaveBeenCalledWith(mockClientSocket.id);
-        expect(mockServerEmitter.emit).toHaveBeenCalledWith('list', listResult);
-        expect(mockServer.to).not.toHaveBeenCalledWith(mockClientSocket2.id);
-        expect(mockServer.to).not.toHaveBeenCalledWith('otherClient');
-        expect(mockServerEmitter.emit).toHaveBeenCalledTimes(1);
+      expect(mockCloudService.list).toHaveBeenCalledWith('/a/b');
+      expect(mockServer.to).toHaveBeenCalledWith(mockClientSocket.id);
+      expect(mockServerEmitter.emit).toHaveBeenCalledWith('list', listResult);
+      expect(mockServer.to).not.toHaveBeenCalledWith(mockClientSocket2.id);
+      expect(mockServer.to).not.toHaveBeenCalledWith('otherClient');
+      expect(mockServerEmitter.emit).toHaveBeenCalledTimes(1);
     });
   });
 

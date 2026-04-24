@@ -6,31 +6,29 @@ import * as os from 'os';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
-// Mock dependencies
+// Mock dependencies. jest.mock calls are hoisted, so the factory for "util"
+// can't reference `exec` directly (it wouldn't be initialized yet).
 jest.mock('fs');
 jest.mock('fs/promises');
 jest.mock('os');
 jest.mock('child_process', () => ({
   exec: jest.fn(),
 }));
-// We need to mock promisify to return our mocked exec
-jest.mock('util', () => ({
-  ...jest.requireActual('util'), // Retain other util functions
-  promisify: jest.fn((fn) => {
-    if (fn === exec) {
-      return jest.fn(); // This will be our mock execAsync
-    }
-    return jest.requireActual('util').promisify(fn);
-  }),
-}));
-
+jest.mock('util', () => {
+  const actual = jest.requireActual('util');
+  const execAsyncMock = jest.fn();
+  return {
+    ...actual,
+    // Always return the same mock so tests and service agree on the instance.
+    promisify: jest.fn(() => execAsyncMock),
+    __execAsyncMock: execAsyncMock,
+  };
+});
 
 const mockFsExistsSync = fs.existsSync as jest.Mock;
 const mockFsReadFile = fsPromises.readFile as jest.Mock;
-
-// Prepare a specific mock for execAsync by getting what promisify(exec) would return
+// `promisify(exec)` in the service returns the same mocked fn we exposed above.
 const mockExecAsync = promisify(exec) as jest.Mock;
-
 
 describe('SystemService', () => {
   let service: SystemService;
@@ -51,7 +49,9 @@ describe('SystemService', () => {
 
   describe('isValid', () => {
     it('should return true if /proc, /, and /data exist', () => {
-      mockFsExistsSync.mockImplementation(path => ['/proc', '/', '/data'].includes(path));
+      mockFsExistsSync.mockImplementation((path) =>
+        ['/proc', '/', '/data'].includes(path),
+      );
       expect(service.isValid()).toBe(true);
       expect(mockFsExistsSync).toHaveBeenCalledWith('/proc');
       expect(mockFsExistsSync).toHaveBeenCalledWith('/');
@@ -59,15 +59,15 @@ describe('SystemService', () => {
     });
 
     it('should return false if /proc does not exist', () => {
-      mockFsExistsSync.mockImplementation(path => path !== '/proc');
+      mockFsExistsSync.mockImplementation((path) => path !== '/proc');
       expect(service.isValid()).toBe(false);
     });
     it('should return false if / does not exist', () => {
-      mockFsExistsSync.mockImplementation(path => path !== '/');
+      mockFsExistsSync.mockImplementation((path) => path !== '/');
       expect(service.isValid()).toBe(false);
     });
     it('should return false if /data does not exist', () => {
-      mockFsExistsSync.mockImplementation(path => path !== '/data');
+      mockFsExistsSync.mockImplementation((path) => path !== '/data');
       expect(service.isValid()).toBe(false);
     });
   });
@@ -75,10 +75,23 @@ describe('SystemService', () => {
   describe('getOSInfo', () => {
     it('should return various OS details', () => {
       const mockOsData = {
-        hostname: 'test-host', type: 'Linux', platform: 'linux', arch: 'x64', machine: 'x86_64',
-        version: '#1 SMP PREEMPT_DYNAMIC', release: '5.15.0', uptime: 12345, loadavg: [0.1, 0.2, 0.3],
-        totalmem: 16000000000, freemem: 8000000000, cpus: [{ model: 'cpu1', speed: 3000, times: {} }],
-        network: { eth0: [] }, userInfo: { uid: 1000 }, homedir: '/home/user', tmpdir: '/tmp', endianness: 'LE'
+        hostname: 'test-host',
+        type: 'Linux',
+        platform: 'linux',
+        arch: 'x64',
+        machine: 'x86_64',
+        version: '#1 SMP PREEMPT_DYNAMIC',
+        release: '5.15.0',
+        uptime: 12345,
+        loadavg: [0.1, 0.2, 0.3],
+        totalmem: 16000000000,
+        freemem: 8000000000,
+        cpus: [{ model: 'cpu1', speed: 3000, times: {} }],
+        network: { eth0: [] },
+        userInfo: { uid: 1000 },
+        homedir: '/home/user',
+        tmpdir: '/tmp',
+        endianness: 'LE',
       };
       (os.hostname as jest.Mock).mockReturnValue(mockOsData.hostname);
       (os.type as jest.Mock).mockReturnValue(mockOsData.type);
@@ -92,11 +105,15 @@ describe('SystemService', () => {
       (os.totalmem as jest.Mock).mockReturnValue(mockOsData.totalmem);
       (os.freemem as jest.Mock).mockReturnValue(mockOsData.freemem);
       (os.cpus as jest.Mock).mockReturnValue(mockOsData.cpus as any);
-      (os.networkInterfaces as jest.Mock).mockReturnValue(mockOsData.network as any);
+      (os.networkInterfaces as jest.Mock).mockReturnValue(
+        mockOsData.network as any,
+      );
       (os.userInfo as jest.Mock).mockReturnValue(mockOsData.userInfo as any);
       (os.homedir as jest.Mock).mockReturnValue(mockOsData.homedir);
       (os.tmpdir as jest.Mock).mockReturnValue(mockOsData.tmpdir);
-      (os.endianness as jest.Mock).mockReturnValue(mockOsData.endianness as any);
+      (os.endianness as jest.Mock).mockReturnValue(
+        mockOsData.endianness as any,
+      );
 
       const osInfo = service.getOSInfo();
       expect(osInfo).toEqual(mockOsData);
@@ -131,17 +148,23 @@ cpu1 50 0 25 100 5 0 0 0 0 0`;
 
       expect(cpuInfo.cores.length).toBe(3);
       expect(cpuInfo.cores[0].cpu).toBe('cpu');
-      expect(cpuInfo.cores[0].usage).toBeCloseTo(150/360);
+      expect(cpuInfo.cores[0].usage).toBeCloseTo(150 / 360);
       expect(cpuInfo.cores[1].cpu).toBe('cpu0');
-      expect(cpuInfo.cores[1].usage).toBeCloseTo(75/180);
-      expect(cpuInfo.usage).toBeCloseTo((100 * ( (150/360) + (75/180) + (75/180) )) / 3 );
+      expect(cpuInfo.cores[1].usage).toBeCloseTo(75 / 180);
+      expect(cpuInfo.usage).toBeCloseTo(
+        (100 * (150 / 360 + 75 / 180 + 75 / 180)) / 3,
+      );
       expect(mockFsExistsSync).toHaveBeenCalledWith('/proc/stat');
-      expect(mockFsReadFile).toHaveBeenCalledWith('/proc/stat', { encoding: 'utf-8' });
+      expect(mockFsReadFile).toHaveBeenCalledWith('/proc/stat', {
+        encoding: 'utf-8',
+      });
     });
 
     it('should throw if /proc/stat does not exist', async () => {
       mockFsExistsSync.mockReturnValue(false);
-      await expect(service.getCPU()).rejects.toThrow('Host must be in android environment.');
+      await expect(service.getCPU()).rejects.toThrow(
+        'Host must be in android environment.',
+      );
     });
   });
 
@@ -164,11 +187,15 @@ SomeOtherKey:  123 kB`;
       expect(memInfo.MemUsage).toBe(650);
       expect(memInfo.usage).toBe(65);
       expect(mockFsExistsSync).toHaveBeenCalledWith('/proc/meminfo');
-      expect(mockFsReadFile).toHaveBeenCalledWith('/proc/meminfo', { encoding: 'utf-8' });
+      expect(mockFsReadFile).toHaveBeenCalledWith('/proc/meminfo', {
+        encoding: 'utf-8',
+      });
     });
     it('should throw if /proc/meminfo does not exist', async () => {
       mockFsExistsSync.mockReturnValue(false);
-      await expect(service.getMemory()).rejects.toThrow('Host must be in android environment.');
+      await expect(service.getMemory()).rejects.toThrow(
+        'Host must be in android environment.',
+      );
     });
   });
 
@@ -192,7 +219,9 @@ SomeOtherKey:  123 kB`;
       expect(batteryInfo['AC powered']).toBe('false');
       expect(batteryInfo['level']).toBe('90');
       expect(batteryInfo['error']).toBeUndefined();
-      expect(mockFsExistsSync).toHaveBeenCalledWith('/sys/class/power_supply/battery/uevent');
+      expect(mockFsExistsSync).toHaveBeenCalledWith(
+        '/sys/class/power_supply/battery/uevent',
+      );
       expect(mockExecAsync).toHaveBeenCalledWith('dumpsys battery');
     });
     it('should return stderr if exec fails', async () => {
@@ -203,13 +232,17 @@ SomeOtherKey:  123 kB`;
     });
     it('should throw if /sys/class/power_supply/battery/uevent does not exist', async () => {
       mockFsExistsSync.mockReturnValue(false);
-      await expect(service.getBattery()).rejects.toThrow('Host must be in android environment.');
+      await expect(service.getBattery()).rejects.toThrow(
+        'Host must be in android environment.',
+      );
     });
   });
 
   describe('getStorage', () => {
     it('should parse df output for / and /data', async () => {
-      mockFsExistsSync.mockImplementation(path => path === '/' || path === '/data');
+      mockFsExistsSync.mockImplementation(
+        (path) => path === '/' || path === '/data',
+      );
       const dfOutput = `Filesystem     1K-blocks     Used Available Use% Mounted on
 /dev/root        1000000   500000    500000  50% /
 /dev/data        2000000  1000000   1000000  50% /data`;
@@ -234,8 +267,10 @@ SomeOtherKey:  123 kB`;
       expect(storageInfo.error).toBe('df error');
     });
     it('should throw if / or /data does not exist', async () => {
-      mockFsExistsSync.mockImplementation(path => path !== '/data'); // Simulate /data not existing
-      await expect(service.getStorage()).rejects.toThrow('Host must be in android environment.');
+      mockFsExistsSync.mockImplementation((path) => path !== '/data'); // Simulate /data not existing
+      await expect(service.getStorage()).rejects.toThrow(
+        'Host must be in android environment.',
+      );
     });
   });
 });

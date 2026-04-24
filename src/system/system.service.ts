@@ -37,35 +37,41 @@ export class SystemService {
 
   async getCPU() {
     const path = '/proc/stat';
-    if (!existsSync(path)) throw new Error('Host must be in android environment.');
+    if (!existsSync(path))
+      throw new Error('Host must be in android environment.');
     const file = await readFile(path, { encoding: 'utf-8' });
     const cores = file
       .split('\n')
-      .filter(line => line.startsWith('cpu'))
-      .map(line => {
+      .filter((line) => line.startsWith('cpu'))
+      .map((line) => {
         const [cpu, ...times] = line.split(/\s+/);
-        const numericTimes = times.map(t => parseInt(t, 10) || 0);
+        const numericTimes = times.map((t) => parseInt(t, 10) || 0);
         const idle = numericTimes[3];
         const ioWait = numericTimes[4];
         const total = numericTimes.reduce((acc, t) => acc + t, 0);
         return {
           cpu,
           usage: (total - idle - ioWait) / total,
-          total
+          total,
         };
       });
-    const usage = (100 * cores.reduce((acc, c) => acc + c.usage, 0)) / cores.length;
+    const usage =
+      (100 * cores.reduce((acc, c) => acc + c.usage, 0)) / cores.length;
     return { cores, usage };
   }
 
-  async getMemory() {
+  async getMemory(): Promise<Record<string, number>> {
     const path = '/proc/meminfo';
-    if (!existsSync(path)) throw new Error('Host must be in android environment.');
+    if (!existsSync(path))
+      throw new Error('Host must be in android environment.');
     const file = await readFile(path, { encoding: 'utf-8' });
     const memoryInfo: Record<string, number> = {};
-    file.split('\n').forEach(line => {
+    file.split('\n').forEach((line) => {
       if (line.includes(':')) {
-        const [key, value] = line.trim().split(':').map(s => s.trim());
+        const [key, value] = line
+          .trim()
+          .split(':')
+          .map((s) => s.trim());
         memoryInfo[key] = parseInt(value.split(' ')[0], 10) || 0;
       }
     });
@@ -74,19 +80,23 @@ export class SystemService {
     return {
       ...memoryInfo,
       MemUsage,
-      usage: (100 * MemUsage) / MemTotal
+      usage: MemTotal > 0 ? (100 * MemUsage) / MemTotal : 0,
     };
   }
 
   async getBattery() {
     const path = '/sys/class/power_supply/battery/uevent';
-    if (!existsSync(path)) throw new Error('Host must be in android environment.');
+    if (!existsSync(path))
+      throw new Error('Host must be in android environment.');
     const { stdout, stderr } = await execAsync('dumpsys battery');
     if (stderr) return { error: stderr };
     const batteryInfo: Record<string, string> = {};
-    stdout.split('\n').forEach(line => {
+    stdout.split('\n').forEach((line) => {
       if (line.includes(':')) {
-        const [key, value] = line.trim().split(':').map(s => s.trim());
+        const [key, value] = line
+          .trim()
+          .split(':')
+          .map((s) => s.trim());
         batteryInfo[key] = value;
       }
     });
@@ -94,19 +104,32 @@ export class SystemService {
   }
 
   async getStorage() {
-    if (!existsSync('/') || !existsSync('/data')) throw new Error('Host must be in android environment.');
+    if (!existsSync('/') || !existsSync('/data'))
+      throw new Error('Host must be in android environment.');
     const { stdout, stderr } = await execAsync('df / /data');
     if (stderr) return { error: stderr };
-    const lines = stdout.split('\n').slice(1).filter(line => line.trim());
+    const lines = stdout
+      .split('\n')
+      .slice(1)
+      .filter((line) => line.trim());
     const storageInfo: Record<string, any> = {};
     lines.forEach((line, i: number) => {
-      const [filesystem, sizeStr, usedStr, availStr, capStr, mounted] = line.trim().split(/\s+/);
+      const [filesystem, sizeStr, usedStr, availStr, capStr, mounted] = line
+        .trim()
+        .split(/\s+/);
       const size = parseInt(sizeStr, 10) || 0;
       const used = parseInt(usedStr, 10) || 0;
       const available = parseInt(availStr, 10) || 0;
       const capacity = parseInt(capStr.replace('%', ''), 10) || 0;
       const name = i === 0 ? 'root' : 'storage';
-      storageInfo[name] = { filesystem, size, used, available, capacity, mounted };
+      storageInfo[name] = {
+        filesystem,
+        size,
+        used,
+        available,
+        capacity,
+        mounted,
+      };
     });
     return storageInfo;
   }
