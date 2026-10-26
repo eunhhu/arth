@@ -2,147 +2,133 @@
   <img src="client/public/icon.svg" width="120" alt="Arth logo" />
 </p>
 
-<h1 align="center">ARTH</h1>
+# ARTH
 
-<p align="center">
-  <em>Android Remote Termux Host — a NestJS server that turns a phone into a personal cloud.</em>
-</p>
+Android Remote Termux Host — a NestJS + Fastify server that turns a spare Android phone running Termux into a small personal server (file storage, a SQLite document store and a live system dashboard) with a React web UI, for people who want a private LAN "cloud" without renting one.
 
-<p align="center">
-  <a href="https://github.com/eunhhu/arth/actions/workflows/ci.yml">
-    <img src="https://github.com/eunhhu/arth/actions/workflows/ci.yml/badge.svg" alt="CI" />
-  </a>
-  <a href="./LICENSE">
-    <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" />
-  </a>
-  <img src="https://img.shields.io/badge/NestJS-10-ea2845" alt="NestJS 10" />
-  <img src="https://img.shields.io/badge/Fastify-4-black" alt="Fastify 4" />
-</p>
+[![CI](https://github.com/eunhhu/arth/actions/workflows/ci.yml/badge.svg)](https://github.com/eunhhu/arth/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+![NestJS 10](https://img.shields.io/badge/NestJS-10-ea2845)
+![Fastify 4](https://img.shields.io/badge/Fastify-4-black)
 
----
+**Status:** Maintained — working hobby project; features are complete for LAN use, but auth is a single shared PIN and the included guards are not wired up by default.
 
-ARTH runs on an old Android phone under Termux and gives you a private server with a web UI — file storage, a lightweight database, and real-time system metrics — without paying for any cloud.
+## Features
 
-## What it does
+- **Cloud storage** — browse, read/write, move, copy, rename, delete, upload (up to 10 GB per file) and download files under `dir/cloud`, with change events pushed over WebSocket.
+- **Document DB** — a small `better-sqlite3`-backed document store: one database file per DB, one table per collection, one JSON document per row, with a `docs/search` endpoint.
+- **System dashboard** — OS, CPU, memory, battery and storage information, pushed to clients over Socket.IO.
+- **Web client** — a React 19 UI bundled with esbuild and served from the same process.
+- **PIN gate** — a single PIN passed at startup (`-n`) that clients must present via `GET /pin?q=...`.
 
-- **Cloud storage** — browse / upload / download files on the phone, with WebSocket-pushed change events.
-- **Document DB** — a small SQLite-backed document store (think "one collection per table, one JSON doc per row").
-- **System dashboard** — live CPU, memory, battery, and storage (pushed to clients over Socket.IO).
-- **Web client** — a React UI served from the same process on port 3000.
-- **PIN-gated** — a single shared PIN, passed on startup, gates client access.
+## How it works
 
-## Architecture
+`src/main.ts` parses `--port` / `--pin` with yargs, reads `dir/.config` through `src/lib/util.ts` to resolve the `root`, `cloud`, `db` and `home` folders (creating any that are missing), then boots a Nest application on the Fastify adapter with `@fastify/multipart` registered for uploads and CORS open to any origin (it is designed for a LAN).
 
-```
-        Phone (Android + Termux)
-┌──────────────────────────────────────────┐
-│  arth (NestJS + Fastify, port 3000)      │
-│  ┌─────────────┐  ┌──────────────────┐   │
-│  │ REST API    │  │ Socket.IO        │   │
-│  │ /api/cloud  │  │ /app  /cloud     │   │
-│  │ /api/db     │  │ /db   /sys       │   │
-│  │ /api/sys    │  │                  │   │
-│  └──────┬──────┘  └────────┬─────────┘   │
-│         │                  │             │
-│  ┌──────▼────┐  ┌──────────▼────────┐    │
-│  │ FS under  │  │ better-sqlite3    │    │
-│  │ dir/      │  │ databases in dir/ │    │
-│  └───────────┘  └───────────────────┘    │
-└──────────────────────────────────────────┘
-             ▲
-             │ WiFi / LAN
-       React web client
-```
+Each feature is a Nest module with a REST controller, a service and a Socket.IO gateway:
 
-`dir/.config` describes where the cloud/db/home folders live relative to the working directory. The server creates any that are missing on first run.
+- `src/cloud/` — `/api/cloud/*` file operations and the `cloud` namespace
+- `src/database/` — `/api/db/*` and the `db` namespace, backed by SQLite files under `dir/db`
+- `src/system/` — `/api/sys/*` and the `sys` namespace
+- `src/app.*` — `/pin` check, the `app` namespace and the static client (`client/public`)
 
-## Quick start
+`src/guards/host.guard.ts` and `origin-filter.guard.ts` are available as building blocks but are not registered on any route out of the box.
 
-### On Termux (Android)
+## Tech stack
+
+- Runtime/Language: Node.js 20 (CI), TypeScript 5
+- Framework: NestJS 10 on Fastify 4, Socket.IO via `@nestjs/platform-socket.io`
+- Client: React 19, styled-components, framer-motion, lucide-react; bundled by esbuild
+- Storage: local filesystem under `dir/`, `better-sqlite3`
+- Infra/Tooling: Yarn, Jest (+ supertest e2e), ESLint + Prettier, GitHub Actions
+
+## Getting started
+
+### Requirements
+
+- Node.js 20 and Yarn
+- On the phone: [Termux](https://termux.dev/) with `pkg install nodejs-lts git yarn`
+
+### Install
 
 ```bash
-# 1. In Termux (Android)
-pkg install nodejs-lts git yarn
 git clone https://github.com/eunhhu/arth.git
 cd arth
-
-# 2. Install + build
 yarn install
-yarn build
-
-# 3. Run
-yarn start            # server on :3000, default PIN 0000
-# or pick a custom PIN / port
-node dist/main -p 8080 -n 1234
+yarn build          # nest build + esbuild client bundle
 ```
 
-Then, from another device on the same network, open `http://<phone-ip>:3000`, enter the PIN, and you're in.
-
-### On a workstation (dev)
+### Run
 
 ```bash
-yarn install
-yarn dev              # server (watch) + client (esbuild watch)
+yarn start                   # server on :3000, default PIN 0000
+node dist/main -p 8080 -n 1234   # custom port / PIN
+yarn dev                     # development: nest --watch + esbuild --watch
 ```
 
-## CLI flags
+From another device on the same network open `http://<phone-ip>:3000` and enter the PIN. The server prints a warning when it is not running on Android, since some system metrics only work there.
 
-| Flag         | Default | Description                         |
-| ------------ | ------- | ----------------------------------- |
-| `-p, --port` | `3000`  | HTTP port to listen on.             |
-| `-n, --pin`  | `0000`  | Shared PIN the client must supply.  |
+| Flag         | Default | Description                        |
+| ------------ | ------- | ---------------------------------- |
+| `-p, --port` | `3000`  | HTTP port to listen on             |
+| `-n, --pin`  | `0000`  | Shared PIN the client must supply  |
 
-## HTTP API (high level)
+### Test
 
-| Namespace  | Path prefix  | Highlights                                                   |
-| ---------- | ------------ | ------------------------------------------------------------ |
-| App        | `/pin`       | `GET /pin?q=...` → `success` / `fail`.                       |
-| Cloud      | `/api/cloud` | `list`, `stat`, `read`, `write`, `createDir`, `upload`, etc. |
-| Database   | `/api/db`    | `dbs`, `cols`, `docs`, `doc`, `db`, `col`.                   |
-| System     | `/api/sys`   | `os`, `cpu`, `memory`, `battery`, `storage`.                 |
-
-See `src/*/` for full route lists and the Socket.IO gateways (`app.gateway.ts`, `cloud/cloud.gateway.ts`, etc.) for realtime events.
-
-## Dev scripts
-
-| Script               | What it runs                                                    |
-| -------------------- | --------------------------------------------------------------- |
-| `yarn dev`           | `nest start --watch` + `esbuild --watch` in parallel.           |
-| `yarn start`         | `nest start` (no watch).                                        |
-| `yarn start:prod`    | `node dist/main` — use after `yarn build`.                      |
-| `yarn build`         | Server build (`nest build`) + client bundle (`esbuild`).        |
-| `yarn lint`          | ESLint with autofix across `src/`, `apps/`, `libs/`, `test/`.   |
-| `yarn test`          | Jest unit tests (all `*.spec.ts` under `src/`).                 |
-| `yarn test:e2e`      | Jest end-to-end tests under `test/`.                            |
-| `yarn test:cov`      | Jest + coverage report.                                         |
-| `yarn format`        | Prettier over `src/` + `test/`.                                 |
-
-## Repository layout
-
+```bash
+yarn lint
+yarn test            # unit tests (src/**/*.spec.ts)
+yarn test:e2e        # e2e tests under test/
+yarn test:cov
 ```
-arth/
-├── src/                NestJS server
-│   ├── app.*.ts         root controller / service / gateway
-│   ├── cloud/           files, uploads, downloads
-│   ├── database/        better-sqlite3 document store
-│   ├── system/          CPU / memory / battery / storage
-│   ├── guards/          host + origin filters
-│   └── lib/util.ts      config loader + ANSI colors
-├── client/              React UI (esbuild-bundled into client/public/index.js)
-├── test/                e2e tests (supertest + Fastify)
-├── dir/.config          runtime config (paths under dir/)
-└── .github/workflows/   CI
+
+## HTTP API
+
+| Prefix       | Endpoints                                                                                                              |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `/pin`       | `GET /pin?q=<pin>` → `success` / `fail`                                                                                |
+| `/api/cloud` | `list`, `stat`, `find`, `findContent`, `read`, `readMany`, `write`, `writeMany`, `createDir`, `createFile`, `delete`, `deleteMany`, `move`, `moveMany`, `copy`, `copyMany`, `rename`, `renameMany`, `download`, `upload` |
+| `/api/db`    | `dbs`, `cols`, `docs`, `doc`, `docs/search`                                                                           |
+| `/api/sys`   | `os`, `cpu`, `memory`, `battery`, `storage`                                                                           |
+
+Socket.IO namespaces: `app`, `cloud`, `db`, `sys` (see the `*.gateway.ts` files).
+
+## Project structure
+
+```text
+src/                 NestJS server
+  app.*.ts           PIN check, app gateway, static client serving
+  cloud/             file storage controller / service / gateway
+  database/          SQLite document store
+  system/            OS / CPU / memory / battery / storage
+  guards/            optional host + origin guards
+  lib/util.ts        dir/.config loader and ANSI colour helper
+client/              React UI (src/ → esbuild → public/index.js)
+test/                e2e tests (supertest + Fastify)
+dir/.config          runtime path configuration
+.github/workflows/   CI (lint, unit, e2e, build)
 ```
+
+## Configuration
+
+No environment variables are read apart from `npm_package_version` (used for the startup banner). Runtime paths come from `dir/.config`, a `key=value` file whose values are resolved relative to `dir/`:
+
+| Key                                        | Purpose                                 |
+| ------------------------------------------ | --------------------------------------- |
+| `root`                                     | base folder (default `/` → `dir/`)      |
+| `cloud`                                    | file storage root                       |
+| `db`                                       | SQLite database files                   |
+| `home`, `document`, `music`, `video`, `picture` | user folders created on first run  |
 
 ## Security notes
 
-- `host.guard.ts` / `origin-filter.guard.ts` are included as building blocks — register them on the routes you want to lock down before exposing the server to the public internet. Out of the box, the server allows `cors: *`, because it's designed for a LAN.
-- The PIN is a minimal auth layer. For anything sensitive, put arth behind a reverse proxy with TLS + real auth.
+- CORS is `*` and the PIN is the only auth layer. Keep the server on a trusted LAN, or put it behind a reverse proxy with TLS and real authentication before exposing it.
+- Register `HostGuard` / `OriginFilterGuard` on the routes you want to restrict.
 
-## Contributing
+## History
 
-PRs welcome. Please run `yarn lint && yarn test` before submitting. The codebase is small enough to read end-to-end in one sitting, so feel free to file issues with ideas.
+The initial version was written by hand in December 2024 as the author's first NestJS project. The 2026 cleanup (tests, CI, documentation, bug fixes) was done through AI-assisted pull requests; bot authorship is preserved in the commit history.
 
 ## License
 
-ARTH is [MIT-licensed](./LICENSE).
+[MIT](./LICENSE)
